@@ -1,8 +1,266 @@
-/*
+/* ===== Calendar Container ===== */
+.ob-calendar-wrapper {
+	height: 100%;
+	padding: var(--size-4-4);
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.ob-calendar-container {
+	height: 100%;
 
-If your plugin does not need CSS, delete this file.
+	/* FullCalendar -> Obsidian CSS variable mapping */
+	--fc-button-text-color: var(--text-normal);
+	--fc-button-bg-color: var(--interactive-normal);
+	--fc-button-border-color: var(--interactive-normal);
+	--fc-button-hover-bg-color: var(--interactive-hover);
+	--fc-button-hover-border-color: var(--interactive-hover);
+	--fc-button-active-border-color: var(--interactive-accent);
+	--fc-button-active-bg-color: var(--interactive-accent);
+	--fc-button-active-text-color: var(--text-on-accent);
 
-*/
+	--fc-event-border-color: var(--interactive-accent);
+	--fc-event-bg-color: var(--interactive-accent);
+	--fc-event-text-color: var(--text-on-accent);
+
+	--fc-list-event-hover-bg-color: var(--background-secondary);
+	--fc-neutral-bg-color: var(--background-primary-alt);
+	--fc-page-bg-color: var(--background-primary);
+	--fc-border-color: var(--background-modifier-border);
+	--fc-now-indicator-color: var(--text-error-hover);
+	--fc-today-bg-color: var(--background-modifier-cover);
+	--fc-highlight-color: var(--text-highlight-bg);
+	--fc-more-link-bg-color: var(--background-primary-alt);
+	--fc-more-link-text-color: var(--text-accent);
+	--fc-neutral-text-color: var(--text-muted);
+	--fc-non-business-color: var(--background-modifier-box-shadow);
+	--fc-col-header-cell-cushion-color: var(--text-normal);
+	--fc-daygrid-day-number-color: var(--text-normal);
+	--fc-list-event-title-color: var(--text-normal);
+	--fc-list-day-cushion-color: var(--text-normal);
+}
+
+/* ===== Button Overrides ===== */
+.ob-calendar-container .fc .fc-button {
+	border: none !important;
+	box-shadow: none !important;
+	line-height: 1 !important;
+	padding: var(--size-4-1) var(--size-4-3) !important;
+	border-radius: var(--radius-s) !important;
+	font-size: var(--font-ui-small) !important;
+	font-weight: var(--font-medium) !important;
+}
+
+.ob-calendar-container .fc .fc-button-active {
+	color: var(--text-on-accent) !important;
+	background-color: var(--interactive-accent) !important;
+}
+
+.ob-calendar-container .fc .fc-button-group > .fc-button {
+	border-radius: var(--radius-s) !important;
+	margin-left: var(--size-2-1) !important;
+}
+
+/* ===== Links ===== */
+.ob-calendar-container .fc a {
+	text-decoration-line: none;
+}
+
+/* ===== Toolbar ===== */
+.ob-calendar-container .fc .fc-toolbar-title {
+	font-size: var(--font-ui-large) !important;
+	font-weight: var(--font-bold) !important;
+}
+
+/* ===== Header Cells ===== */
+.ob-calendar-container .fc .fc-col-header-cell {
+	padding: var(--size-4-1) 0;
+}
+
+/* ===== Day Numbers ===== */
+.ob-calendar-container .fc .fc-daygrid-day-number {
+	padding: var(--size-4-1) var(--size-4-2);
+	font-size: var(--font-ui-small);
+}
+
+/* ===== Events ===== */
+.ob-calendar-container .fc .fc-event {
+	border-radius: var(--radius-s);
+	padding: 1px 4px;
+	font-size: var(--font-ui-smaller);
+}
+
+/* ===== Completed Tasks ===== */
+.ob-calendar-task-completed {
+	opacity: 0.6;
+}
+
+.ob-calendar-task-completed .fc-event-title,
+.ob-calendar-task-completed .fc-list-event-title {
+	text-decoration: line-through;
+}
+
+/* ===== Now Indicator ===== */
+.ob-calendar-container .fc .fc-timegrid-now-indicator-line {
+	border-color: var(--text-error-hover);
+}
+
+/* ===== List View ===== */
+.ob-calendar-container .fc .fc-list-day-cushion {
+	background-color: var(--background-secondary) !important;
+}
+
+/* ===== Scrollbar ===== */
+.ob-calendar-container .fc .fc-scroller {
+	scrollbar-width: thin;
+}
+
+/* ===== Mobile ===== */
+.is-phone .ob-calendar-wrapper {
+	padding: var(--size-4-2);
+}
+
+.is-phone .ob-calendar-container .fc .fc-toolbar {
+	flex-direction: column;
+	gap: var(--size-4-2);
+}
+
+/* ===== Modal Title ===== */
+.ob-calendar-modal > h2 {
+	margin-top: 0;
+	margin-bottom: var(--size-4-2);
+}
+
+/* ===== Modal Common ===== */
+.ob-calendar-modal .ob-calendar-form,
+.ob-calendar-modal .ob-calendar-detail-grid {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-3);
+}
+
+.ob-calendar-modal .ob-calendar-form-field {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-3);
+}
+
+.ob-calendar-modal .ob-calendar-form-field label {
+	min-width: 70px;
+	flex-shrink: 0;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+
+.ob-calendar-modal .ob-calendar-form-field input,
+.ob-calendar-modal .ob-calendar-form-field select,
+.ob-calendar-modal .ob-calendar-form-field textarea {
+	flex: 1;
+	background: var(--background-modifier-form-field);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: var(--size-4-1) var(--size-4-2);
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+	font-family: inherit;
+}
+
+.ob-calendar-modal .ob-calendar-form-field textarea {
+	resize: vertical;
+}
+
+.ob-calendar-modal .ob-calendar-form-field input[type="checkbox"] {
+	width: 18px;
+	height: 18px;
+	flex: none;
+	accent-color: var(--interactive-accent);
+	cursor: pointer;
+}
+
+.ob-calendar-modal .ob-calendar-form-field:has(input[type="checkbox"]) label {
+	cursor: pointer;
+}
+
+.ob-calendar-modal .ob-calendar-time-group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-3);
+}
+
+.ob-calendar-modal .ob-calendar-time-group .ob-calendar-form-field {
+	min-width: calc(50% - var(--size-4-3));
+}
+
+.ob-calendar-modal .ob-calendar-form-buttons {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--size-4-2);
+	margin-top: var(--size-4-4);
+}
+
+/* ===== Task Detail Modal ===== */
+.ob-calendar-detail-modal .ob-calendar-detail-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--size-4-4);
+}
+
+.ob-calendar-detail-modal .ob-calendar-detail-header h2 {
+	margin: 0;
+	flex: 1;
+}
+
+.ob-calendar-detail-modal .ob-calendar-detail-grid {
+	gap: var(--size-4-2);
+}
+
+.ob-calendar-detail-modal .ob-calendar-detail-row {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-3);
+}
+
+.ob-calendar-detail-modal .ob-calendar-detail-label {
+	min-width: 70px;
+	flex-shrink: 0;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.ob-calendar-detail-modal .ob-calendar-detail-value {
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+}
+
+.ob-calendar-detail-modal .ob-calendar-detail-section {
+	margin-top: var(--size-4-3);
+}
+
+.ob-calendar-detail-modal .ob-calendar-detail-section h3 {
+	margin-bottom: var(--size-4-2);
+}
+
+.ob-calendar-detail-modal .ob-calendar-detail-content {
+	background: var(--background-primary-alt);
+	border-radius: var(--radius-s);
+	padding: var(--size-4-3);
+	font-size: var(--font-ui-small);
+	white-space: pre-wrap;
+	word-break: break-word;
+	max-height: 200px;
+	overflow-y: auto;
+	margin: 0;
+}
+
+/* ===== Settings Page ===== */
+.ob-calendar-settings .ob-calendar-setting-desc {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	margin-bottom: var(--size-4-2);
+	padding-left: 0;
+}
+
+.ob-calendar-settings .ob-calendar-heading-item {
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding-bottom: var(--size-4-2);
+	margin-bottom: var(--size-4-2);
+}
