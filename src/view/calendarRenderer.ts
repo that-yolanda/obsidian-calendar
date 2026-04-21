@@ -1,6 +1,7 @@
 import {
 	Calendar,
 	type EventClickArg,
+	type EventContentArg,
 	type EventDropArg,
 } from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -11,6 +12,42 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import { type App, TFile } from "obsidian";
 import { mapEventsToInputs } from "../services/eventMapper";
 import type { CalendarEvent, ObCalendarSettings, TaskStatus } from "../types";
+
+const STATUS_DATA_TASK: Record<TaskStatus, string> = {
+	initial: " ",
+	completed: "✓",
+	incomplete: "/",
+	cancelled: "x",
+};
+
+function renderEventContent(arg: EventContentArg): {
+	html: string;
+} {
+	const status = arg.event.extendedProps.status as TaskStatus;
+	const dataTask = STATUS_DATA_TASK[status] ?? " ";
+	const title = escapeHtml(arg.event.title);
+	const checked = status === "completed" ? "checked" : "";
+
+	return {
+		html: `<div class="ob-calendar-task-content markdown-rendered">
+			<ul class="contains-task-list">
+				<li class="task-list-item" data-task="${dataTask}">
+					<input type="checkbox" class="task-list-item-checkbox" ${checked} disabled tabindex="-1" />
+					<span class="ob-calendar-task-title">${title}</span>
+				</li>
+			</ul>
+		</div>`,
+	};
+}
+
+function escapeHtml(value: string): string {
+	return value
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
+}
 
 export interface SelectInfo {
 	startStr: string;
@@ -59,6 +96,13 @@ export function renderCalendar(
 			center: "title",
 			right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
 		},
+		buttonText: {
+			today: "今天",
+			month: "月",
+			week: "周",
+			day: "日",
+			list: "列表",
+		},
 		firstDay: settings.firstDay,
 		locale: "zh-cn",
 		height: "100%",
@@ -67,6 +111,8 @@ export function renderCalendar(
 		selectable: true,
 		dayMaxEvents: true,
 		events: mapEventsToInputs(events, settings),
+		titleFormat: { year: "numeric", month: "2-digit" },
+		eventContent: renderEventContent,
 		eventTimeFormat: settings.timeFormat24h
 			? { hour: "2-digit", minute: "2-digit", hour12: false }
 			: { hour: "numeric", minute: "2-digit", hour12: true },
@@ -123,6 +169,36 @@ export function renderCalendar(
 
 		eventResize(info: EventResizeDoneArg) {
 			callbacks.onEventResize(info);
+		},
+
+		datesSet(dateInfo) {
+			const titleEl = container.querySelector(
+				".fc-toolbar-title",
+			) as HTMLElement | null;
+			if (!titleEl) return;
+
+			const start = dateInfo.start;
+			const end = dateInfo.end;
+			const fmt = (d: Date) => {
+				const m = String(d.getMonth() + 1).padStart(2, "0");
+				const dd = String(d.getDate()).padStart(2, "0");
+				return `${m}-${dd}`;
+			};
+			const yyyy = start.getFullYear();
+			const m = String(start.getMonth() + 1).padStart(2, "0");
+
+			let title = "";
+			const viewType = dateInfo.view.type;
+			if (viewType === "dayGridMonth") {
+				title = `${yyyy}-${m}`;
+			} else if (viewType === "timeGridDay") {
+				title = fmt(start);
+			} else {
+				const endExclusive = new Date(end);
+				endExclusive.setDate(endExclusive.getDate() - 1);
+				title = `${fmt(start)} - ${fmt(endExclusive)}`;
+			}
+			titleEl.textContent = title;
 		},
 	});
 

@@ -6,6 +6,7 @@ import { mapEventsToInputs } from "../services/eventMapper";
 import { CALENDAR_VIEW_TYPE } from "../types";
 import {
 	type CalendarCallbacks,
+	openFileAtLine,
 	renderCalendar,
 	type SelectInfo,
 } from "./calendarRenderer";
@@ -108,6 +109,9 @@ export class CalendarView extends ItemView {
 					lineNumber,
 					formData,
 				);
+			},
+			async (sourcePath, lineNumber) => {
+				await openFileAtLine(this.app, sourcePath, lineNumber);
 			},
 		).open();
 	}

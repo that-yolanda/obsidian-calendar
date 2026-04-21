@@ -1,12 +1,9 @@
-import { type App, Modal } from "obsidian";
+import { type App, Modal, Setting } from "obsidian";
 import type { TaskFormData, TaskHeadingConfig, TaskStatus } from "../types";
-
-const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
-	{ value: "initial", label: "初始状态 - [ ]" },
-	{ value: "completed", label: "已完成 - [✓]" },
-	{ value: "incomplete", label: "未完成 - [/]" },
-	{ value: "cancelled", label: "已取消 - [x]" },
-];
+import {
+	addMarkdownEditorSetting,
+	addTaskStatusSetting,
+} from "./taskFormComponents";
 
 export interface TaskDetailData {
 	title: string;
@@ -29,6 +26,7 @@ export class TaskDetailModal extends Modal {
 		lineNumber: number,
 		formData: TaskFormData,
 	) => Promise<void>;
+	private onOpenNote: (sourcePath: string, lineNumber: number) => void;
 
 	constructor(
 		app: App,
@@ -39,11 +37,13 @@ export class TaskDetailModal extends Modal {
 			lineNumber: number,
 			formData: TaskFormData,
 		) => Promise<void>,
+		onOpenNote: (sourcePath: string, lineNumber: number) => void,
 	) {
 		super(app);
 		this.data = data;
 		this.taskHeadings = taskHeadings;
 		this.onSave = onSave;
+		this.onOpenNote = onOpenNote;
 	}
 
 	onOpen(): void {
@@ -58,95 +58,97 @@ export class TaskDetailModal extends Modal {
 		});
 		form.addEventListener("submit", (e) => e.preventDefault());
 
-		// Heading selector
-		const headingSelect = this.addField(
-			form,
-			"任务分类",
-			this.createSelect(
-				this.taskHeadings.map((h, i) => ({
-					value: String(i),
-					label: h.heading || `分类 ${i + 1}`,
-				})),
-			),
-		);
+		let headingSelect!: HTMLSelectElement;
+		new Setting(form).setName("任务分类").addDropdown((dropdown) => {
+			headingSelect = dropdown.selectEl;
+			for (const [index, heading] of this.taskHeadings.entries()) {
+				dropdown.addOption(
+					String(index),
+					heading.heading || `分类 ${index + 1}`,
+				);
+			}
+		});
 
-		// Task name
-		const nameInput = this.addField(
-			form,
-			"任务名称",
-			this.createInput("text", "请输入任务名称", true),
-		);
+		let nameInput!: HTMLInputElement;
+		new Setting(form).setName("任务名称").addText((text) => {
+			nameInput = text.inputEl;
+			nameInput.type = "text";
+			nameInput.placeholder = "请输入任务名称";
+			nameInput.required = true;
+		});
 		nameInput.value = this.data.title;
 
-		// Task details
-		const detailsInput = this.addField(
+		const detailsInput = addMarkdownEditorSetting(
 			form,
+			this.app,
+			this,
 			"任务详情",
-			this.createTextarea("可选", 3),
+			this.data.details,
 		);
-		detailsInput.value = this.data.details;
 
-		// All-day toggle
-		const allDayToggle = this.addField(form, "全天任务", this.createCheckbox());
-		allDayToggle.checked = this.data.allDay;
-		allDayToggle.id = "ob-cal-edit-allday-toggle";
-		{
-			const field = allDayToggle.closest(".ob-calendar-form-field");
-			const lbl = field?.querySelector("label");
-			if (lbl) lbl.setAttribute("for", allDayToggle.id);
-		}
+		// All-day toggle — native Obsidian toggle via Setting API
+		let isAllDay = this.data.allDay;
+		const allDaySetting = new Setting(form)
+			.setName("全天任务")
+			.addToggle((toggle) => {
+				toggle.setValue(this.data.allDay);
+				toggle.onChange((value) => {
+					isAllDay = value;
+					timeContainer.style.display = value ? "none" : "";
+				});
+			});
+		allDaySetting.settingEl.addClass("ob-calendar-toggle-setting");
 
 		// Time fields
 		const timeContainer = form.createDiv({
 			cls: "ob-calendar-time-group",
 		});
 
-		const startDateInput = this.addField(
+		const startDateInput = this.addDateTimeSetting(
 			timeContainer,
 			"开始日期",
-			this.createInput("date"),
+			"date",
+			this.data.startDate,
 		);
-		startDateInput.value = this.data.startDate;
 
-		const startTimeInput = this.addField(
+		const startTimeInput = this.addDateTimeSetting(
 			timeContainer,
 			"开始时间",
-			this.createInput("time"),
+			"time",
+			this.data.startTime,
 		);
-		startTimeInput.value = this.data.startTime;
 
-		const endDateInput = this.addField(
+		const endDateInput = this.addDateTimeSetting(
 			timeContainer,
 			"结束日期",
-			this.createInput("date"),
+			"date",
+			this.data.endDate,
 		);
-		endDateInput.value = this.data.endDate;
 
-		const endTimeInput = this.addField(
+		const endTimeInput = this.addDateTimeSetting(
 			timeContainer,
 			"结束时间",
-			this.createInput("time"),
+			"time",
+			this.data.endTime,
 		);
-		endTimeInput.value = this.data.endTime;
 
-		const updateVisibility = () => {
-			timeContainer.style.display = allDayToggle.checked ? "none" : "";
-		};
-		allDayToggle.addEventListener("change", updateVisibility);
-		updateVisibility();
+		if (isAllDay) {
+			timeContainer.style.display = "none";
+		}
 
-		// Status
-		const statusSelect = this.addField(
-			form,
-			"任务状态",
-			this.createSelect(STATUS_OPTIONS),
-		);
-		statusSelect.value = this.data.status;
+		const statusField = addTaskStatusSetting(form, this.data.status);
 
 		// Buttons
 		const buttonContainer = form.createDiv({
 			cls: "ob-calendar-form-buttons",
 		});
+
+		buttonContainer
+			.createEl("button", { text: "打开文件", type: "button" })
+			.addEventListener("click", () => {
+				this.onOpenNote(this.data.sourcePath, this.data.lineNumber);
+				this.close();
+			});
 
 		buttonContainer.createEl("button", {
 			text: "保存",
@@ -167,12 +169,12 @@ export class TaskDetailModal extends Modal {
 			const formData: TaskFormData = {
 				name,
 				details: detailsInput.value.trim(),
-				allDay: allDayToggle.checked,
+				allDay: isAllDay,
 				startDate: startDateInput.value,
 				startTime: startTimeInput.value,
 				endDate: endDateInput.value,
 				endTime: endTimeInput.value,
-				status: statusSelect.value as TaskStatus,
+				status: statusField.getValue(),
 				headingIndex: Number(headingSelect.value),
 			};
 
@@ -185,55 +187,21 @@ export class TaskDetailModal extends Modal {
 		this.contentEl.empty();
 	}
 
-	private addField<T extends HTMLElement>(
+	private addDateTimeSetting(
 		container: HTMLElement,
 		label: string,
-		input: T,
-	): T {
-		const field = container.createDiv({ cls: "ob-calendar-form-field" });
-		field.createEl("label", { text: label });
-		field.appendChild(input);
-		return input;
-	}
-
-	private createInput(
-		type: string,
-		placeholder?: string,
-		required?: boolean,
+		type: "date" | "time",
+		value: string,
 	): HTMLInputElement {
-		const el = document.createElement("input");
-		el.type = type;
-		if (placeholder) el.placeholder = placeholder;
-		if (required) el.required = true;
-		return el;
-	}
+		const wrapper = container.createDiv({ cls: "ob-calendar-time-field" });
+		let inputEl!: HTMLInputElement;
 
-	private createTextarea(
-		placeholder: string,
-		rows: number,
-	): HTMLTextAreaElement {
-		const el = document.createElement("textarea");
-		el.placeholder = placeholder;
-		el.rows = rows;
-		return el;
-	}
+		new Setting(wrapper).setName(label).addText((text) => {
+			inputEl = text.inputEl;
+			inputEl.type = type;
+			inputEl.value = value;
+		});
 
-	private createCheckbox(): HTMLInputElement {
-		const el = document.createElement("input");
-		el.type = "checkbox";
-		return el;
-	}
-
-	private createSelect(
-		options: { value: string; label: string }[],
-	): HTMLSelectElement {
-		const el = document.createElement("select");
-		for (const opt of options) {
-			el.createEl("option", {
-				value: opt.value,
-				text: opt.label,
-			});
-		}
-		return el;
+		return inputEl;
 	}
 }
