@@ -1,4 +1,4 @@
-import { type App, type CachedMetadata, TFile } from "obsidian";
+import { type App, type CachedMetadata, normalizePath, TFile } from "obsidian";
 import type {
 	CalendarEvent,
 	ObCalendarSettings,
@@ -119,8 +119,9 @@ export class DailyNoteService {
 		const lines = content.split("\n");
 
 		if (!headingExists && headingName) {
-			lines.push("", `## ${headingName}`, taskLine);
+			this.appendTaskSection(lines, headingName, taskLine);
 		} else {
+			this.removeBlankLinesAt(lines, insertionPoint);
 			lines.splice(insertionPoint, 0, taskLine);
 		}
 
@@ -264,12 +265,7 @@ export class DailyNoteService {
 	// --- Private helpers ---
 
 	private async readTemplateContent(): Promise<string> {
-		// biome-ignore lint/suspicious/noExplicitAny: Obsidian internal API
-		const dailyNotesPlugin = (this.app as any).internalPlugins?.getPluginById(
-			"daily-notes",
-		);
-		const templatePath: string =
-			dailyNotesPlugin?.instance?.options?.template ?? "";
+		const templatePath = this.getDailyNoteTemplatePath();
 
 		if (!templatePath) return "";
 
@@ -277,6 +273,34 @@ export class DailyNoteService {
 		if (templateFile instanceof TFile) {
 			return await this.app.vault.read(templateFile);
 		}
+		return "";
+	}
+
+	private getDailyNoteTemplatePath(): string {
+		// biome-ignore lint/suspicious/noExplicitAny: Obsidian internal/community plugin API
+		const appAny = this.app as any;
+		const coreTemplatePath: string =
+			appAny.internalPlugins?.getPluginById("daily-notes")?.instance?.options
+				?.template ?? "";
+		// biome-ignore lint/suspicious/noExplicitAny: Obsidian internal/community plugin API
+		const periodicTemplatePath: string =
+			appAny.plugins?.plugins?.["periodic-notes"]?.settings?.daily?.template ?? "";
+
+		const rawPath = coreTemplatePath || periodicTemplatePath;
+		if (!rawPath) return "";
+
+		const candidates = [
+			normalizePath(rawPath),
+			normalizePath(rawPath.endsWith(".md") ? rawPath : `${rawPath}.md`),
+		];
+
+		for (const candidate of candidates) {
+			const file = this.app.vault.getAbstractFileByPath(candidate);
+			if (file instanceof TFile) {
+				return candidate;
+			}
+		}
+
 		return "";
 	}
 
@@ -356,7 +380,7 @@ export class DailyNoteService {
 		lineNumber: number,
 		date: string,
 	): TaskInfo | null {
-		const match = line.match(/^\s*-\s+\[([ x✓/])\]\s+(.+)/);
+		const match = line.match(/^-\s+\[([ x✓/])\]\s+(.+)/);
 		if (!match?.[1] || !match[2]) return null;
 
 		const status = STATUS_MAP[match[1]] ?? "initial";
@@ -493,16 +517,7 @@ export class DailyNoteService {
 
 		for (let i = 0; i < lines.length; i++) {
 			if (lines[i]?.match(new RegExp(`^#+\\s+${escapedHeading}\\s*$`, "i"))) {
-				const headingLevel = lines[i]?.match(/^(#+)/)?.[1]?.length ?? 1;
-				let endLine = i + 1;
-				while (endLine < lines.length) {
-					const headingMatch = lines[endLine]?.match(/^(#+)\s+/);
-					if (headingMatch?.[1] && headingMatch[1].length <= headingLevel) {
-						break;
-					}
-					endLine++;
-				}
-				return { insertionPoint: endLine, headingExists: true };
+				return { insertionPoint: i + 1, headingExists: true };
 			}
 		}
 
@@ -619,11 +634,39 @@ export class DailyNoteService {
 		const lines = content.split("\n");
 
 		if (!headingExists && headingName) {
-			lines.push("", `## ${headingName}`, taskLine);
+			this.appendTaskSection(lines, headingName, taskLine);
 		} else {
+			this.removeBlankLinesAt(lines, insertionPoint);
 			lines.splice(insertionPoint, 0, taskLine);
 		}
 
 		await this.app.vault.modify(file, lines.join("\n"));
+	}
+
+	private appendTaskSection(
+		lines: string[],
+		headingName: string,
+		taskLine: string,
+	): void {
+		while (lines.length > 0 && lines.at(-1) === "") {
+			lines.pop();
+		}
+
+		if (lines.length > 0) {
+			lines.push("");
+		}
+
+		lines.push(`## ${headingName}`, taskLine);
+	}
+
+	private removeBlankLinesAt(lines: string[], startIndex: number): void {
+		let endIndex = startIndex;
+		while (endIndex < lines.length && lines[endIndex] === "") {
+			endIndex++;
+		}
+
+		if (endIndex > startIndex) {
+			lines.splice(startIndex, endIndex - startIndex);
+		}
 	}
 }

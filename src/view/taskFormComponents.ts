@@ -1,4 +1,4 @@
-import { type App, MarkdownRenderer, Setting } from "obsidian";
+import { type App, type Component, MarkdownRenderer, Setting } from "obsidian";
 import type { TaskStatus } from "../types";
 
 export const TASK_STATUS_OPTIONS: {
@@ -15,26 +15,30 @@ export const TASK_STATUS_OPTIONS: {
 export function addMarkdownEditorSetting(
 	container: HTMLElement,
 	app: App,
-	owner: object,
+	owner: Component,
 	label: string,
 	initialValue: string,
 ): HTMLTextAreaElement {
 	const setting = new Setting(container).setName(label);
-	setting.settingEl.addClass("ob-calendar-md-setting");
+	setting.settingEl.addClass("ob-calendar-setting-stretch");
 	setting.controlEl.empty();
 
 	const editorWrapper = setting.controlEl.createDiv({
 		cls: "ob-calendar-md-editor markdown-source-view mod-cm6",
 	});
 
-	const previewEl = editorWrapper.createDiv({
+	const surfaceEl = editorWrapper.createDiv({
+		cls: "ob-calendar-md-surface",
+	});
+
+	const previewEl = surfaceEl.createDiv({
 		cls: "ob-calendar-md-preview markdown-rendered",
 	});
 	const previewContent = previewEl.createDiv({
 		cls: "markdown-preview-view",
 	});
 
-	const textarea = editorWrapper.createEl("textarea", {
+	const textarea = surfaceEl.createEl("textarea", {
 		cls: "ob-calendar-md-textarea",
 	});
 	textarea.value = initialValue;
@@ -49,14 +53,7 @@ export function addMarkdownEditorSetting(
 
 		if (text) {
 			previewEl.removeClass("is-empty");
-			await MarkdownRenderer.render(
-				app,
-				text,
-				previewContent,
-				"",
-				// biome-ignore lint/suspicious/noExplicitAny: Modal extends Component at runtime
-				owner as any,
-			);
+			await MarkdownRenderer.render(app, text, previewContent, "", owner);
 			return;
 		}
 
@@ -68,7 +65,6 @@ export function addMarkdownEditorSetting(
 		if (isEditing) return;
 
 		isEditing = true;
-		editorWrapper.addClass("is-editing");
 		previewEl.style.display = "none";
 		textarea.style.display = "";
 		textarea.focus();
@@ -76,7 +72,6 @@ export function addMarkdownEditorSetting(
 
 	textarea.addEventListener("blur", () => {
 		isEditing = false;
-		editorWrapper.removeClass("is-editing");
 		textarea.style.display = "none";
 		previewEl.style.display = "";
 		void renderPreview();
@@ -91,7 +86,7 @@ export function addTaskStatusSetting(
 	initialValue: TaskStatus,
 ): { getValue: () => TaskStatus } {
 	const setting = new Setting(container).setName("任务状态");
-	setting.settingEl.addClass("ob-calendar-status-setting");
+	setting.settingEl.addClass("ob-calendar-setting-stretch");
 	setting.controlEl.empty();
 	setting.controlEl.addClass("markdown-rendered");
 
@@ -113,8 +108,9 @@ export function addTaskStatusSetting(
 	};
 
 	for (const option of TASK_STATUS_OPTIONS) {
+		const isChecked = option.value !== "initial";
 		const itemEl = listEl.createEl("li", {
-			cls: "task-list-item ob-calendar-status-option",
+			cls: `task-list-item ob-calendar-status-option${isChecked ? " is-checked" : ""}`,
 		});
 		itemEl.setAttribute("data-task", option.taskChar);
 		itemEl.setAttribute("role", "radio");
@@ -125,7 +121,7 @@ export function addTaskStatusSetting(
 			cls: "task-list-item-checkbox",
 		});
 		checkboxEl.disabled = true;
-		checkboxEl.checked = option.value === "completed";
+		checkboxEl.checked = isChecked;
 		checkboxEl.setAttribute("tabindex", "-1");
 
 		itemEl.createSpan({

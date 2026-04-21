@@ -12,6 +12,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import { type App, TFile } from "obsidian";
 import { mapEventsToInputs } from "../services/eventMapper";
 import type { CalendarEvent, ObCalendarSettings, TaskStatus } from "../types";
+import type { TaskDetailData } from "./taskFormModal";
 
 const STATUS_DATA_TASK: Record<TaskStatus, string> = {
 	initial: " ",
@@ -26,17 +27,19 @@ function renderEventContent(arg: EventContentArg): {
 	const status = arg.event.extendedProps.status as TaskStatus;
 	const dataTask = STATUS_DATA_TASK[status] ?? " ";
 	const title = escapeHtml(arg.event.title);
-	const checked = status === "completed" ? "checked" : "";
+	const isChecked = status !== "initial";
+	const checkedAttr = isChecked ? "checked" : "";
+	const isCheckedClass = isChecked ? " is-checked" : "";
 
 	return {
 		html: `<div class="ob-calendar-task-content markdown-rendered">
-			<ul class="contains-task-list">
-				<li class="task-list-item" data-task="${dataTask}">
-					<input type="checkbox" class="task-list-item-checkbox" ${checked} disabled tabindex="-1" />
-					<span class="ob-calendar-task-title">${title}</span>
-				</li>
-			</ul>
-		</div>`,
+				<ul class="contains-task-list">
+					<li class="task-list-item${isCheckedClass}" data-task="${dataTask}">
+						<input type="checkbox" class="task-list-item-checkbox" ${checkedAttr} disabled tabindex="-1" />
+						<span class="ob-calendar-task-title">${title}</span>
+					</li>
+				</ul>
+			</div>`,
 	};
 }
 
@@ -53,19 +56,6 @@ export interface SelectInfo {
 	startStr: string;
 	endStr: string;
 	allDay: boolean;
-}
-
-export interface TaskDetailData {
-	title: string;
-	status: TaskStatus;
-	allDay: boolean;
-	startDate: string;
-	startTime: string;
-	endDate: string;
-	endTime: string;
-	details: string;
-	sourcePath: string;
-	lineNumber: number;
 }
 
 export interface CalendarCallbacks {
@@ -121,7 +111,7 @@ export function renderCalendar(
 			: { hour: "numeric", minute: "2-digit", hour12: true },
 
 		eventClick(info: EventClickArg) {
-			const { sourcePath, lineNumber, status, details } =
+			const { sourcePath, lineNumber, status, details, headingIndex } =
 				info.event.extendedProps;
 			if (!sourcePath) return;
 
@@ -138,6 +128,7 @@ export function renderCalendar(
 					? info.event.endStr.slice(11, 16)
 					: "",
 				details: details ?? "",
+				headingIndex: headingIndex ?? 0,
 				sourcePath,
 				lineNumber,
 			};

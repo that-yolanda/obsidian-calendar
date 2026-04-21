@@ -10,8 +10,7 @@ import {
 	renderCalendar,
 	type SelectInfo,
 } from "./calendarRenderer";
-import { TaskCreationModal } from "./TaskCreationModal";
-import { type TaskDetailData, TaskDetailModal } from "./TaskDetailModal";
+import { type TaskDetailData, TaskFormModal } from "./taskFormModal";
 
 export class CalendarView extends ItemView {
 	private plugin: ObCalendarPlugin;
@@ -99,21 +98,21 @@ export class CalendarView extends ItemView {
 	}
 
 	private handleEventClick(eventData: TaskDetailData): void {
-		new TaskDetailModal(
-			this.app,
-			eventData,
-			this.plugin.settings.taskHeadings,
-			async (sourcePath, lineNumber, formData) => {
+		new TaskFormModal(this.app, {
+			mode: "edit",
+			taskHeadings: this.plugin.settings.taskHeadings,
+			initialData: eventData,
+			onSave: async (sourcePath, lineNumber, formData) => {
 				await this.plugin.dailyNoteService.updateTask(
 					sourcePath,
 					lineNumber,
 					formData,
 				);
 			},
-			async (sourcePath, lineNumber) => {
+			onOpenNote: async (sourcePath, lineNumber) => {
 				await openFileAtLine(this.app, sourcePath, lineNumber);
 			},
-		).open();
+		}).open();
 	}
 
 	private async handleDateSelect(selectInfo: SelectInfo): Promise<void> {
@@ -132,17 +131,17 @@ export class CalendarView extends ItemView {
 			? selectInfo.endStr.slice(11, 16)
 			: "";
 
-		const modal = new TaskCreationModal(
-			this.app,
-			this.plugin.settings.taskHeadings,
-			{
+		const modal = new TaskFormModal(this.app, {
+			mode: "create",
+			taskHeadings: this.plugin.settings.taskHeadings,
+			initialData: {
 				allDay: selectInfo.allDay,
 				startDate,
 				startTime,
 				endDate,
 				endTime,
 			},
-		);
+		});
 
 		const formData = await modal.show();
 		if (!formData) return;
