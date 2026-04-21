@@ -24,15 +24,13 @@ export class CalendarSettingTab extends PluginSettingTab {
 		containerEl.empty();
 		containerEl.addClass("ob-calendar-settings");
 
-		containerEl.createEl("h2", { text: "日历设置" });
-
 		this.renderDailyNoteInfo(containerEl);
 		await this.renderTaskHeadings(containerEl);
 		this.renderCalendarPreferences(containerEl);
 	}
 
 	private renderDailyNoteInfo(containerEl: HTMLElement): void {
-		containerEl.createEl("h3", { text: "日记集成" });
+		new Setting(containerEl).setHeading().setName("日记集成");
 
 		const config = this.plugin.getDailyNoteConfig();
 
@@ -91,7 +89,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 	}
 
 	private async renderTaskHeadings(containerEl: HTMLElement): Promise<void> {
-		containerEl.createEl("h3", { text: "任务分类" });
+		new Setting(containerEl).setHeading().setName("任务分类");
 
 		containerEl.createEl("p", {
 			text: "配置日记中的任务标题，日历将解析对应标题下的任务并使用指定颜色显示",
@@ -175,7 +173,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 	}
 
 	private renderCalendarPreferences(containerEl: HTMLElement): void {
-		containerEl.createEl("h3", { text: "日历偏好" });
+		new Setting(containerEl).setHeading().setName("日历偏好");
 
 		new Setting(containerEl)
 			.setName("初始视图")

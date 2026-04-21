@@ -3,42 +3,44 @@
 ## Project overview
 
 - Target: Obsidian Community Plugin (TypeScript → bundled JavaScript).
-- Entry point: `main.ts` compiled to `main.js` and loaded by Obsidian.
+- Source entry point: `src/main.ts`, bundled to `main.js` and loaded by Obsidian.
 - Required release artifacts: `main.js`, `manifest.json`, and optional `styles.css`.
 
 ## Environment & tooling
 
 - Node.js: use current LTS (Node 18+ recommended).
-- **Package manager: npm** (required for this sample - `package.json` defines npm scripts and dependencies).
+- **Package manager: pnpm** (this project already uses `pnpm-lock.yaml`; new instructions and dependency management should follow pnpm).
 - **Bundler: esbuild** (required for this sample - `esbuild.config.mjs` and build scripts depend on it). Alternative bundlers like Rollup or webpack are acceptable for other projects if they bundle all external dependencies into `main.js`.
+- Formatter / linter: **Biome** via the scripts in `package.json`.
 - Types: `obsidian` type definitions.
 
-**Note**: This sample project has specific technical dependencies on npm and esbuild. If you're creating a plugin from scratch, you can choose different tools, but you'll need to replace the build configuration accordingly.
+**Note**: This project currently assumes `pnpm` and `esbuild`. If you replace either one, update the scripts and all related documentation together.
 
 ### Install
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### Dev (watch)
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 ### Production build
 
 ```bash
-npm run build
+pnpm build
 ```
 
 ## Linting
 
-- To use eslint install eslint from terminal: `npm install -g eslint`
-- To use eslint to analyze this project use this command: `eslint main.ts`
-- eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder: `eslint ./src/`
+- Check code quality with `pnpm lint`.
+- Apply auto-fixable lint changes with `pnpm lint:fix`.
+- Format source files with `pnpm format`.
+- If the project exposes `pnpm check`, run it after any code change before committing; otherwise run the available lint and format commands explicitly.
+- Fix all Biome errors and warnings before considering a task complete.
 
 ## File & folder conventions
 
@@ -60,7 +62,7 @@ npm run build
       constants.ts
     types.ts         # TypeScript interfaces and types
   ```
-- **Do not commit build artifacts**: Never commit `node_modules/`, `main.js`, or other generated files to version control.
+- **Do not commit dependencies**: Never commit `node_modules/` or other installed dependency directories to version control.
 - Keep the plugin small. Avoid large dependencies. Prefer browser-compatible packages.
 - Generated output should be placed at the plugin root or `dist/` depending on your build setup. Release artifacts must end up at the top level of the plugin folder in the vault (`main.js`, `manifest.json`, `styles.css`).
 
@@ -137,6 +139,18 @@ Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particula
 - Bundle everything into `main.js` (no unbundled runtime deps).
 - Avoid Node/Electron APIs if you want mobile compatibility; set `isDesktopOnly` accordingly.
 - Prefer `async/await` over promise chains; handle errors gracefully.
+- All code comments must be written in English.
+
+## Commit conventions
+
+- Use Conventional Commit prefixes such as `fix:`, `feat:`, `refactor:`, `docs:`.
+- Add a scope when it improves traceability, for example `fix(hotkey): ...` or `feat(settings): ...`.
+- The message after the prefix should explain **why**, not only **what** changed.
+- Keep commit messages short, clear, and traceable.
+- Avoid vague messages such as `improve performance`, `optimize code`, or `fix issue`.
+- Preferred examples:
+  - `fix(hotkey): avoid accidental hold trigger while pressing modifier combos`
+  - `feat(settings): support hold-to-talk for users who prefer press-and-release input`
 
 ## Mobile
 
@@ -161,7 +175,7 @@ Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particula
 
 ### Organize code across multiple files
 
-**main.ts** (minimal, lifecycle only):
+**src/main.ts** (minimal, lifecycle only):
 ```ts
 import { Plugin } from "obsidian";
 import { MySettings, DEFAULT_SETTINGS } from "./settings";
@@ -237,7 +251,7 @@ this.registerInterval(window.setInterval(() => { /* ... */ }, 1000));
 ## Troubleshooting
 
 - Plugin doesn't load after build: ensure `main.js` and `manifest.json` are at the top level of the plugin folder under `<Vault>/.obsidian/plugins/<plugin-id>/`. 
-- Build issues: if `main.js` is missing, run `npm run build` or `npm run dev` to compile your TypeScript source code.
+- Build issues: if `main.js` is missing, run `pnpm build` or `pnpm dev` to compile the TypeScript source.
 - Commands not appearing: verify `addCommand` runs after `onload` and IDs are unique.
 - Settings not persisting: ensure `loadData`/`saveData` are awaited and you re-render the UI after changes.
 - Mobile-only issues: confirm you're not using desktop-only APIs; check `isDesktopOnly` and adjust.

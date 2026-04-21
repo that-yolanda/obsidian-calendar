@@ -4,6 +4,7 @@
 	"description": "Obsidian Calendar",
 	"main": "main.js",
 	"type": "module",
+	"packageManager": "pnpm@10.32.1",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
