@@ -91,16 +91,12 @@
 	padding: 0;
 }
 
-.fc .fc-event-main {
-	padding: 1px 4px;
-}
-
-
-.ob-calendar-task-row {
-	display: flex;
-	align-items: center;
-	gap: 3px;
+.fc .ob-calendar-task-row {
 	overflow: hidden;
+	height: 100%;
+	display: flex;
+	align-items: start;
+	gap: 2px;
 }
 
 .fc .task-list-item-checkbox {

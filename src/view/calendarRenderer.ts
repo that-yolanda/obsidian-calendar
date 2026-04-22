@@ -25,8 +25,7 @@ function renderEventContent(arg: EventContentArg): { domNodes: HTMLElement[] } {
 		(arg.event.extendedProps.statusChar as string | undefined) ??
 		TASK_STATUS_CHAR_MAP[status] ??
 		" ";
-	const container = document.createElement("div");
-	container.className = "markdown-rendered";
+
 
 	const itemEl = document.createElement("div");
 	itemEl.className = "ob-calendar-task-row";
@@ -48,10 +47,9 @@ function renderEventContent(arg: EventContentArg): { domNodes: HTMLElement[] } {
 	titleEl.textContent = arg.event.title;
 
 	itemEl.append(checkboxEl, titleEl);
-	container.append(itemEl);
 
 	return {
-		domNodes: [container],
+		domNodes: [itemEl],
 	};
 }
 

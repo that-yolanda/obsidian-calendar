@@ -1,4 +1,10 @@
-import { type App, type CachedMetadata, normalizePath, TFile } from "obsidian";
+import {
+	type App,
+	type CachedMetadata,
+	moment,
+	normalizePath,
+	TFile,
+} from "obsidian";
 import {
 	type CalendarEvent,
 	type ObCalendarSettings,
@@ -247,7 +253,7 @@ export class DailyNoteService {
 	): Promise<CalendarEvent[]> {
 		if (applicableConfigIndices.length === 0) return [];
 
-		const fallbackDate = this.extractDateFromFileName(file.name);
+		const fallbackDate = this.extractDateFromFilePath(file.path);
 		const content = await this.app.vault.read(file);
 		const tasks = this.parseTasks(content, fallbackDate);
 		const cache = this.app.metadataCache.getCache(file.path);
@@ -532,9 +538,7 @@ export class DailyNoteService {
 
 	private getTargetFilePath(config: TaskConfig, date: string): string {
 		if (config.type === "daily-note") {
-			const folder = this.getDailyNoteFolder();
-			const fileName = `${date}.md`;
-			return folder ? `${folder}/${fileName}` : fileName;
+			return this.getDailyNotePath(date);
 		}
 
 		const targetFile = normalizePath(config.targetFile);
@@ -613,7 +617,35 @@ export class DailyNoteService {
 		if (folder && !file.path.startsWith(`${folder}/`)) {
 			return false;
 		}
-		return this.extractDateFromFileName(file.name) !== null;
+		return this.extractDateFromFilePath(file.path) !== null;
+	}
+
+	private getDailyNotePath(date: string): string {
+		const folder = this.getDailyNoteFolder();
+		const format = this.getDailyNoteFormat();
+		const parsedDate = moment(date, "YYYY-MM-DD", true);
+		const formattedPath =
+			format && parsedDate.isValid() ? parsedDate.format(format) : date;
+		const filePath = formattedPath.endsWith(".md")
+			? formattedPath
+			: `${formattedPath}.md`;
+
+		return folder
+			? normalizePath(`${folder}/${filePath}`)
+			: normalizePath(filePath);
+	}
+
+	private getDailyNoteFormat(): string {
+		// biome-ignore lint/suspicious/noExplicitAny: Obsidian internal/community plugin API
+		const appAny = this.app as any;
+		const coreFormat: string =
+			appAny.internalPlugins?.getPluginById("daily-notes")?.instance?.options
+				?.format ?? "";
+		const periodicFormat: string =
+			appAny.plugins?.plugins?.["periodic-notes"]?.settings?.daily?.format ??
+			"";
+
+		return coreFormat || periodicFormat || "YYYY-MM-DD";
 	}
 
 	private getDailyNoteFolder(): string {
@@ -630,11 +662,34 @@ export class DailyNoteService {
 	}
 
 	private extractDateFromFilePath(filePath: string): string | null {
+		const normalizedPath = normalizePath(filePath).replace(/\.md$/, "");
+		const folder = this.getDailyNoteFolder();
+		const relativePath =
+			folder && normalizedPath.startsWith(`${folder}/`)
+				? normalizedPath.slice(folder.length + 1)
+				: normalizedPath;
+		const parsedByFormat = this.parseDateByFormat(relativePath);
+		if (parsedByFormat) {
+			return parsedByFormat;
+		}
+
 		const file = this.app.vault.getAbstractFileByPath(filePath);
 		if (file instanceof TFile) {
 			return this.extractDateFromFileName(file.name);
 		}
 		return null;
+	}
+
+	private parseDateByFormat(path: string): string | null {
+		const format = this.getDailyNoteFormat();
+		if (!format) return null;
+
+		const parsed = moment(path, format, true);
+		if (!parsed.isValid()) {
+			return null;
+		}
+
+		return parsed.format("YYYY-MM-DD");
 	}
 
 	private extractDateFromFileName(fileName: string): string | null {
