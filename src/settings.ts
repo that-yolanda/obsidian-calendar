@@ -351,14 +351,12 @@ export class CalendarSettingTab extends PluginSettingTab {
 
 			new Setting(itemContainer)
 				.addButton((btn) =>
-					btn
-						.setButtonText("删除任务")
-						.onClick(async () => {
-							this.manualHeadingDrafts.clear();
-							this.plugin.settings.taskConfigs.splice(index, 1);
-							await this.plugin.saveSettings();
-							await this.display();
-						}),
+					btn.setButtonText("删除任务").onClick(async () => {
+						this.manualHeadingDrafts.clear();
+						this.plugin.settings.taskConfigs.splice(index, 1);
+						await this.plugin.saveSettings();
+						await this.display();
+					}),
 				)
 				.settingEl.addClass("ob-calendar-task-config-item");
 		}
