@@ -9,8 +9,8 @@ export const TASK_STATUS_OPTIONS: Array<{
 }> = [
 	{ value: "initial", label: "未开始", taskChar: " " },
 	{ value: "incomplete", label: "未完成", taskChar: "/" },
-	{ value: "completed", label: "完成", taskChar: "✓" },
-	{ value: "cancelled", label: "取消", taskChar: "x" },
+	{ value: "completed", label: "完成", taskChar: "x" },
+	{ value: "cancelled", label: "取消", taskChar: "-" },
 ];
 
 export const TASK_STATUS_CHAR_MAP = Object.fromEntries(

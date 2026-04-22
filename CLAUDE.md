@@ -51,7 +51,7 @@ Obsidian plugin integrating FullCalendar to display daily note tasks on a calend
 ## Key Details
 
 - FullCalendar v6 packages (`@fullcalendar/core`, `daygrid`, `timegrid`, `list`, `interaction`) are the main UI dependency
-- Tasks are parsed from daily notes under a configurable heading, with checkbox format: `[ ]` initial, `[✓]` completed, `[/]` incomplete, `[x]` cancelled
+- Tasks are parsed from daily notes under a configurable heading, with checkbox format: `[ ]` initial, `[x]` completed, `[/]` incomplete, `[-]` cancelled
 - Inline properties (`startTime`, `endTime`) in task lines are extracted for time-based display
 - `esbuild.config.mjs` externalizes `obsidian`, `electron`, CodeMirror modules, and Node builtins
 - Biome is the linter/formatter (tab indent, 80 char line width)

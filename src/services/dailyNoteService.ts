@@ -305,7 +305,7 @@ export class DailyNoteService {
 		lineNumber: number,
 		fallbackDate: string | null,
 	): TaskInfo | null {
-		const match = line.match(/^-\s+\[([ x✓/])\]\s+(.+)/);
+		const match = line.match(/^-\s+\[([^\]])\]\s+(.+)/);
 		if (!match?.[1] || !match[2]) return null;
 
 		const status = TASK_CHAR_STATUS_MAP[match[1]] ?? "initial";
