@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
@@ -46,41 +46,23 @@ if (!dryRun && gitStatus) {
 	process.exit(1);
 }
 
+// Read current files
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
 const manifest = JSON.parse(readFileSync("manifest.json", "utf8"));
 const versions = JSON.parse(readFileSync("versions.json", "utf8"));
 
-if (packageJson.version !== version) {
-	console.error(
-		`package.json version mismatch: expected ${version}, got ${packageJson.version}`,
-	);
-	process.exit(1);
-}
+// Bump version in all three files
+packageJson.version = version;
+manifest.version = version;
+versions[version] = manifest.minAppVersion;
 
-if (manifest.version !== version) {
-	console.error(
-		`manifest.json version mismatch: expected ${version}, got ${manifest.version}`,
-	);
-	process.exit(1);
-}
-
-if (!(version in versions)) {
-	console.error(`versions.json is missing version ${version}`);
-	process.exit(1);
-}
-
-if (versions[version] !== manifest.minAppVersion) {
-	console.error(
-		`versions.json minAppVersion mismatch: expected ${manifest.minAppVersion}, got ${versions[version]}`,
-	);
-	process.exit(1);
-}
-
-if (packageJson.name !== manifest.id) {
-	console.error(
-		`package name and manifest id mismatch: ${packageJson.name} !== ${manifest.id}`,
-	);
-	process.exit(1);
+if (!dryRun) {
+	writeFileSync("package.json", `${JSON.stringify(packageJson, null, "\t")}\n`);
+	writeFileSync("manifest.json", `${JSON.stringify(manifest, null, "\t")}\n`);
+	writeFileSync("versions.json", `${JSON.stringify(versions, null, "\t")}\n`);
+	console.log(`Version bumped to ${version} in package.json, manifest.json, versions.json`);
+} else {
+	console.log(`[dry-run] Would bump version to ${version}`);
 }
 
 const releaseTitle = `chore(release): publish ${version}`;
@@ -92,12 +74,7 @@ if (!dryRun && existingTag) {
 
 run("pnpm", ["lint"]);
 run("pnpm", ["build"]);
-run("git", [
-	"add",
-	"package.json",
-	"manifest.json",
-	"versions.json",
-]);
+run("git", ["add", "package.json", "manifest.json", "versions.json"]);
 const stagedChanges = runAndCapture("git", ["diff", "--cached", "--name-only"]);
 if (stagedChanges) {
 	run("git", ["commit", "-m", releaseTitle]);
