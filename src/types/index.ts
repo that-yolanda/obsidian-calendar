@@ -24,7 +24,6 @@ export const TASK_CHAR_STATUS_MAP = Object.fromEntries(
 export interface TaskConfig {
 	type: TaskConfigType;
 	heading: string;
-	manualHeading: boolean;
 	targetFile: string;
 	lightColor: string;
 	darkColor: string;
@@ -74,8 +73,6 @@ export interface TaskFormData {
 }
 
 export interface ObCalendarSettings {
-	dailyNoteFolder: string;
-	dailyNoteFormat: string;
 	taskConfigs: TaskConfig[];
 	initialView: string;
 	firstDay: number;
@@ -83,8 +80,6 @@ export interface ObCalendarSettings {
 }
 
 export const DEFAULT_SETTINGS: ObCalendarSettings = {
-	dailyNoteFolder: "",
-	dailyNoteFormat: "YYYY-MM-DD",
 	taskConfigs: [],
 	initialView: "timeGridWeek",
 	firstDay: 1,

@@ -7,6 +7,18 @@
 	padding: var(--size-4-2);
 }
 
+.is-phone .fc .fc-toolbar-title {
+	display: none;
+}
+
+.is-phone .fc .fc-header-toolbar {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--size-4-2);
+}
+
+
 .fc{
 	height: 100%;
 
@@ -124,11 +136,6 @@
 }
 
 
-.is-phone .fc .fc-toolbar {
-	flex-direction: column;
-	gap: var(--size-4-2);
-}
-
 .ob-calendar-modal *{
 	font-size: var(--font-ui-small);
 }
@@ -170,17 +177,13 @@
 	font: inherit;
 }
 
-.ob-calendar-modal .ob-calendar-toggle-setting .setting-item-control {
-	flex: 0 0 auto;
-}
-
+.ob-calendar-modal .ob-calendar-toggle-setting .setting-item-control,
 .ob-calendar-modal .ob-calendar-dropdown-setting .setting-item-control {
 	flex: 0 0 auto;
 }
 
 .ob-calendar-modal .ob-calendar-dropdown-setting .setting-item-control > select {
-	width: auto;
-	min-width: 12em;
+	width: 100%;
 }
 
 .ob-calendar-modal .ob-calendar-time-row .setting-item-control {
@@ -294,20 +297,24 @@
 }
 
 .ob-calendar-status-list {
-	display: flex;
-	flex-wrap: nowrap;
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
 	gap: var(--size-4-2);
 	width: 100%;
 	margin: 0;
 	padding: 0;
 }
 
+.is-phone .ob-calendar-status-list {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .ob-calendar-modal .ob-calendar-status-list .ob-calendar-status-option {
 	display: flex;
 	align-items: center;
-	justify-content: center;
+	justify-content: flex-start;
 	gap: var(--size-4-2);
-	flex: 1;
+	min-width: 0;
 	margin: 0;
 	padding: var(--size-4-2) var(--size-4-3);
 	border: 1px solid var(--background-modifier-border);
@@ -330,37 +337,70 @@
 .ob-calendar-modal .ob-calendar-status-list .ob-calendar-status-option .task-list-item-checkbox {
 	margin: 0;
 	pointer-events: none;
+	width: 16px;
+	min-width: 16px;
+	height: 16px;
+	flex: 0 0 16px;
 }
 
 .ob-calendar-status-label {
 	color: var(--text-normal);
+	white-space: nowrap;
+	flex: 0 1 auto;
 }
 
-.ob-calendar-settings .ob-calendar-heading-item {
-	padding-bottom: var(--size-4-2);
-	margin-bottom: var(--size-4-2);
+.ob-calendar-settings .ob-calendar-task-config {
+	margin-bottom: var(--size-4-3);
 }
 
-.ob-calendar-settings .ob-calendar-heading-item .setting-item-info {
-	display: none;
+.ob-calendar-settings .ob-calendar-task-config-item {
+	padding: var(--size-4-2) 0;
 }
 
-.ob-calendar-settings .ob-calendar-heading-item .setting-item-control {
+.ob-calendar-settings .ob-calendar-task-config-item:first-child {
+	padding-top: 0;
+}
+
+.ob-calendar-settings .ob-calendar-task-config-item:last-child {
+	padding-bottom: 0;
+	border-bottom: none;
+}
+
+.ob-calendar-settings .ob-calendar-task-config-item .setting-item-info,
+.ob-calendar-settings .ob-calendar-task-config-item .setting-item-control {
 	width: 100%;
-	justify-content: flex-start;
-	gap: var(--size-4-2);
 }
 
-.ob-calendar-settings .ob-calendar-heading-item .ob-calendar-heading-item-control select {
-	min-width: 0;
+
+.ob-calendar-settings .ob-calendar-task-config-item .setting-item-control > select,
+.ob-calendar-settings
+	.ob-calendar-task-config-item
+	.setting-item-control
+	> input[type="text"] {
 	width: 100%;
-	flex: 1 1 auto;
 }
 
-.ob-calendar-settings .ob-calendar-heading-item input[type="color"] {
+.ob-calendar-settings .ob-calendar-task-config-item input[type="color"] {
+	width: 28px;
+	height: 28px;
+	padding: 0;
 	flex: 0 0 auto;
+	border: none;
+	border-radius: 50%;
+	background: transparent;
+	overflow: hidden;
+	cursor: pointer;
 }
 
-.ob-calendar-settings .ob-calendar-heading-item .clickable-icon {
-	margin-inline-start: 0;
+.ob-calendar-settings
+	.ob-calendar-task-config-item
+	input[type="color"]::-webkit-color-swatch-wrapper {
+	padding: 0;
+}
+
+.ob-calendar-settings
+	.ob-calendar-task-config-item
+	input[type="color"]::-webkit-color-swatch {
+	border: none;
+	border-radius: 50%;
 }

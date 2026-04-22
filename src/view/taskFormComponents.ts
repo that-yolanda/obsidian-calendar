@@ -47,7 +47,6 @@ export function addMarkdownEditorSetting(
 		}
 
 		previewEl.addClass("is-empty");
-
 	};
 
 	previewEl.addEventListener("click", () => {

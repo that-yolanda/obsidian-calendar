@@ -532,7 +532,7 @@ export class DailyNoteService {
 
 	private getTargetFilePath(config: TaskConfig, date: string): string {
 		if (config.type === "daily-note") {
-			const folder = this.settings.dailyNoteFolder;
+			const folder = this.getDailyNoteFolder();
 			const fileName = `${date}.md`;
 			return folder ? `${folder}/${fileName}` : fileName;
 		}
@@ -609,11 +609,24 @@ export class DailyNoteService {
 	}
 
 	private isDailyNote(file: TFile): boolean {
-		const folder = this.settings.dailyNoteFolder;
+		const folder = this.getDailyNoteFolder();
 		if (folder && !file.path.startsWith(`${folder}/`)) {
 			return false;
 		}
 		return this.extractDateFromFileName(file.name) !== null;
+	}
+
+	private getDailyNoteFolder(): string {
+		// biome-ignore lint/suspicious/noExplicitAny: Obsidian internal/community plugin API
+		const appAny = this.app as any;
+		const coreFolder: string =
+			appAny.internalPlugins?.getPluginById("daily-notes")?.instance?.options
+				?.folder ?? "";
+		const periodicFolder: string =
+			appAny.plugins?.plugins?.["periodic-notes"]?.settings?.daily?.folder ??
+			"";
+
+		return normalizePath(coreFolder || periodicFolder || "");
 	}
 
 	private extractDateFromFilePath(filePath: string): string | null {

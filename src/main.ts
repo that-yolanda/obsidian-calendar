@@ -98,34 +98,10 @@ export default class ObCalendarPlugin extends Plugin {
 
 	async loadSettings(): Promise<void> {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-		this.syncDailyNoteConfig();
 	}
 
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
 		this.dailyNoteService.updateSettings(this.settings);
-	}
-
-	getDailyNoteConfig(): {
-		folder: string;
-		format: string;
-		template: string;
-	} {
-		// biome-ignore lint/suspicious/noExplicitAny: Obsidian internal API
-		const dailyNotesPlugin = (this.app as any).internalPlugins?.getPluginById(
-			"daily-notes",
-		);
-		const options = dailyNotesPlugin?.instance?.options;
-		return {
-			folder: options?.folder || "",
-			format: options?.format || "YYYY-MM-DD",
-			template: options?.template || "",
-		};
-	}
-
-	private syncDailyNoteConfig(): void {
-		const config = this.getDailyNoteConfig();
-		this.settings.dailyNoteFolder = config.folder;
-		this.settings.dailyNoteFormat = config.format;
 	}
 }
