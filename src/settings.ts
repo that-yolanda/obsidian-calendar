@@ -4,6 +4,7 @@ import {
 	normalizePath,
 	PluginSettingTab,
 	Setting,
+	SettingGroup,
 	TFile,
 } from "obsidian";
 import type ObCalendarPlugin from "./main";
@@ -134,244 +135,295 @@ export class CalendarSettingTab extends PluginSettingTab {
 	}
 
 	private async renderTaskConfigs(containerEl: HTMLElement): Promise<void> {
-		new Setting(containerEl).setHeading().setName("任务配置");
-
 		const templateHeadings = await this.getTemplateHeadings();
 		const markdownFilePaths = this.getMarkdownFilePaths();
 		const { taskConfigs } = this.plugin.settings;
+
+		// Pre-compute heading data for unconfigured tasks
+		const headingDataMap = new Map<number, string[]>();
+		for (let i = 0; i < taskConfigs.length; i++) {
+			const config = taskConfigs[i];
+			if (!config || config.heading.trim()) continue;
+			headingDataMap.set(
+				i,
+				config.type === "daily-note"
+					? templateHeadings
+					: await this.getFileHeadings(config.targetFile),
+			);
+		}
+
+		const group = new SettingGroup(containerEl)
+			.setHeading("任务配置")
+			.addClass("ob-calendar-task-group");
 
 		for (let i = 0; i < taskConfigs.length; i++) {
 			const index = i;
 			const config = taskConfigs[index];
 			if (!config) continue;
-			const currentHeading = config.heading.trim();
-			const availableHeadings =
-				config.type === "daily-note"
-					? templateHeadings
-					: await this.getFileHeadings(config.targetFile);
-			const headingOptions = [...availableHeadings];
-			if (
-				currentHeading &&
-				!headingOptions.some((heading) => heading === currentHeading)
-			) {
-				headingOptions.unshift(currentHeading);
-			}
-			const isEditingManualHeading = this.manualHeadingDrafts.has(index);
-			const itemContainer = containerEl.createDiv({
-				cls: "ob-calendar-task-config",
-			});
 
-			new Setting(itemContainer)
-				.setName("任务类型")
-				.addDropdown((dropdown) => {
-					dropdown.addOptions({
-						"daily-note": "日记任务",
-						file: "项目任务",
-					});
-					dropdown.setValue(config.type);
-					dropdown.onChange(async (value: string) => {
+			if (config.heading.trim()) {
+				const typeLabel =
+					config.type === "daily-note" ? "日记任务" : "项目任务";
+				group.addSetting((setting) => {
+					setting
+						.setName(config.heading)
+						.setDesc(typeLabel)
+						.addColorPicker((picker) => {
+							picker
+								.setValue(config.lightColor || "#cccccc")
+								.onChange(async (value: string) => {
+									const item = this.plugin.settings.taskConfigs[index];
+									if (item) item.lightColor = value;
+									await this.plugin.saveSettings();
+								});
+						})
+						.addColorPicker((picker) => {
+							picker
+								.setValue(config.darkColor || "#555555")
+								.onChange(async (value: string) => {
+									const item = this.plugin.settings.taskConfigs[index];
+									if (item) item.darkColor = value;
+									await this.plugin.saveSettings();
+								});
+						})
+						.addExtraButton((btn) => {
+							btn
+								.setIcon("trash")
+								.setTooltip("删除")
+								.onClick(async () => {
+									this.plugin.settings.taskConfigs.splice(index, 1);
+									await this.plugin.saveSettings();
+									await this.display();
+								});
+						});
+				});
+				continue;
+			}
+
+			// Unconfigured task: single Setting with embedded form
+			const availableHeadings = headingDataMap.get(index) ?? [];
+			group.addSetting((setting) => {
+				setting.settingEl.addClass("ob-calendar-task-edit");
+				setting.setName("新任务");
+
+				const fieldsEl = setting.settingEl.createDiv({
+					cls: "ob-calendar-task-fields",
+				});
+
+				// Type
+				const typeRow = fieldsEl.createDiv({
+					cls: "ob-calendar-task-field",
+				});
+				typeRow.createEl("label", { text: "任务类型" });
+				const typeSelect = typeRow.createEl("select");
+				typeSelect.add(new Option("日记任务", "daily-note"));
+				typeSelect.add(new Option("项目任务", "file"));
+				typeSelect.value = config.type;
+
+				typeSelect.addEventListener("change", async () => {
+					const item = this.plugin.settings.taskConfigs[index];
+					if (!item) return;
+					this.manualHeadingDrafts.delete(index);
+					item.type = typeSelect.value as TaskConfigType;
+					if (item.type === "daily-note") {
+						item.targetFile = "";
+					}
+					item.heading = "";
+					await this.display();
+				});
+
+				// File
+				const fileRow = fieldsEl.createDiv({
+					cls: "ob-calendar-task-field",
+				});
+				fileRow.createEl("label", { text: "目标文件" });
+
+				if (config.type === "daily-note") {
+					const fileInput = document.createElement("input");
+					fileInput.type = "text";
+					fileInput.value = "从日记配置中读取";
+					fileInput.disabled = true;
+					fileRow.appendChild(fileInput);
+				} else {
+					const fileInput = document.createElement("input");
+					fileInput.type = "search";
+					fileInput.placeholder = "搜索并选择文件";
+					fileInput.value = config.targetFile || "";
+					fileRow.appendChild(fileInput);
+
+					const updateTargetFile = async (value: string) => {
 						const item = this.plugin.settings.taskConfigs[index];
 						if (!item) return;
 						this.manualHeadingDrafts.delete(index);
-						item.type = value as TaskConfigType;
-						if (item.type === "daily-note") {
-							item.targetFile = "";
-						}
+						item.targetFile = value.trim();
 						item.heading = "";
-						await this.plugin.saveSettings();
 						await this.display();
+					};
+
+					const suggest = new MarkdownFileSuggest(
+						this.app,
+						fileInput,
+						markdownFilePaths,
+					);
+					suggest.onSelect((value) => {
+						void updateTargetFile(value);
 					});
-				})
-				.settingEl.addClass("ob-calendar-task-config-item");
 
-			if (config.type === "daily-note") {
-				new Setting(itemContainer)
-					.setName("目标文件")
-					.addText((text) =>
-						text.setValue("从日记配置中读取").setDisabled(true),
-					)
-					.settingEl.addClass("ob-calendar-task-config-item");
-			} else {
-				new Setting(itemContainer)
-					.setName("目标文件")
-					.addSearch((search) => {
-						const updateTargetFile = async (value: string) => {
-							const item = this.plugin.settings.taskConfigs[index];
-							if (!item) return;
-							this.manualHeadingDrafts.delete(index);
-							item.targetFile = value.trim();
-							item.heading = "";
-							await this.plugin.saveSettings();
-							await this.display();
-						};
+					fileInput.addEventListener("input", () => {
+						if (!fileInput.value.trim()) {
+							void updateTargetFile("");
+						}
+					});
 
-						search
-							.setPlaceholder("搜索并选择文件")
-							.setValue(config.targetFile || "");
-
-						const suggest = new MarkdownFileSuggest(
-							this.app,
-							search.inputEl,
-							markdownFilePaths,
-						);
-						suggest.onSelect((value) => {
-							void updateTargetFile(value);
-						});
-
-						search.onChange((value) => {
-							if (!value.trim()) {
-								void updateTargetFile("");
-							}
-						});
-
-						search.inputEl.addEventListener("blur", () => {
-							const value = search.getValue().trim();
-							if (!value || !markdownFilePaths.includes(value)) {
-								search.setValue(config.targetFile || "");
-								return;
-							}
-							if (value !== config.targetFile) {
-								void updateTargetFile(value);
-							}
-						});
-
-						search.inputEl.addEventListener("keydown", (event) => {
-							if (event.key !== "Enter") return;
-							event.preventDefault();
-							search.inputEl.blur();
-						});
-					})
-					.settingEl.addClass("ob-calendar-task-config-item");
-			}
-
-			new Setting(itemContainer)
-				.setName("写入标题")
-				.addDropdown((dropdown) => {
-					dropdown.addOption("", "选择标题");
-					for (const heading of headingOptions) {
-						dropdown.addOption(heading, heading);
-					}
-					dropdown.addOption("__manual__", "手动填写");
-
-					const selectedValue = isEditingManualHeading
-						? "__manual__"
-						: currentHeading;
-					dropdown.setValue(selectedValue);
-					dropdown.onChange(async (value: string) => {
-						const item = this.plugin.settings.taskConfigs[index];
-						if (!item) return;
-						if (value === "__manual__") {
-							this.manualHeadingDrafts.add(index);
-							await this.display();
+					fileInput.addEventListener("blur", () => {
+						const value = fileInput.value.trim();
+						if (!value || !markdownFilePaths.includes(value)) {
+							fileInput.value = config.targetFile || "";
 							return;
 						}
-						this.manualHeadingDrafts.delete(index);
-						item.heading = value.trim();
-						await this.plugin.saveSettings();
-						await this.display();
+						if (value !== config.targetFile) {
+							void updateTargetFile(value);
+						}
 					});
-				})
-				.settingEl.addClass("ob-calendar-task-config-item");
 
-			if (isEditingManualHeading) {
-				new Setting(itemContainer)
-					.setName("手动标题")
-					.addText((text) => {
-						const commitManualHeading = async () => {
-							const item = this.plugin.settings.taskConfigs[index];
-							if (!item) return;
-							item.heading = text.getValue().trim();
-							this.manualHeadingDrafts.delete(index);
-							await this.plugin.saveSettings();
-							await this.display();
-						};
+					fileInput.addEventListener("keydown", (event) => {
+						if (event.key !== "Enter") return;
+						event.preventDefault();
+						fileInput.blur();
+					});
+				}
 
-						text
-							.setPlaceholder("输入标题名称")
-							.setValue(currentHeading)
-							.onChange(async (value: string) => {
-								const item = this.plugin.settings.taskConfigs[index];
-								if (!item) return;
-								item.heading = value.trim();
-								await this.plugin.saveSettings();
-							});
-						text.inputEl.addEventListener("blur", () => {
-							void commitManualHeading();
-						});
-						text.inputEl.addEventListener("keydown", (event) => {
-							if (event.key !== "Enter") return;
-							event.preventDefault();
-							text.inputEl.blur();
-						});
-					})
-					.settingEl.addClass("ob-calendar-task-config-item");
-			}
+				// Heading
+				const currentHeading = config.heading.trim();
+				const headingOptions = [...availableHeadings];
+				if (
+					currentHeading &&
+					!headingOptions.some((h) => h === currentHeading)
+				) {
+					headingOptions.unshift(currentHeading);
+				}
+				const isEditingManualHeading = this.manualHeadingDrafts.has(index);
 
-			const lightColorSetting = new Setting(itemContainer)
-				.setName("浅色模式颜色")
-				.addColorPicker((picker) => {
-					picker
-						.setValue(config.lightColor || "#cccccc")
-						.onChange(async (value: string) => {
-							const item = this.plugin.settings.taskConfigs[index];
-							if (item) item.lightColor = value;
-							await this.plugin.saveSettings();
-						});
+				const headingRow = fieldsEl.createDiv({
+					cls: "ob-calendar-task-field",
 				});
-			lightColorSetting.settingEl.addClass("ob-calendar-task-config-item");
-			const lightColorInput =
-				lightColorSetting.controlEl.querySelector<HTMLInputElement>(
-					'input[type="color"]',
-				);
-			if (lightColorInput) {
-				lightColorInput.title = "浅色模式颜色";
-				lightColorInput.setAttribute("aria-label", "浅色模式颜色");
-			}
+				headingRow.createEl("label", { text: "写入标题" });
+				const headingSelect = headingRow.createEl("select");
+				headingSelect.add(new Option("选择标题", ""));
+				for (const heading of headingOptions) {
+					headingSelect.add(new Option(heading, heading));
+				}
+				headingSelect.add(new Option("手动填写", "__manual__"));
+				headingSelect.value = isEditingManualHeading
+					? "__manual__"
+					: currentHeading;
 
-			const darkColorSetting = new Setting(itemContainer)
-				.setName("深色模式颜色")
-				.addColorPicker((picker) => {
-					picker
-						.setValue(config.darkColor || "#333333")
-						.onChange(async (value: string) => {
-							const item = this.plugin.settings.taskConfigs[index];
-							if (item) item.darkColor = value;
-							await this.plugin.saveSettings();
-						});
-				});
-			darkColorSetting.settingEl.addClass("ob-calendar-task-config-item");
-			const darkColorInput =
-				darkColorSetting.controlEl.querySelector<HTMLInputElement>(
-					'input[type="color"]',
-				);
-			if (darkColorInput) {
-				darkColorInput.title = "深色模式颜色";
-				darkColorInput.setAttribute("aria-label", "深色模式颜色");
-			}
-
-			new Setting(itemContainer)
-				.addButton((btn) =>
-					btn.setButtonText("删除任务").onClick(async () => {
-						this.manualHeadingDrafts.clear();
-						this.plugin.settings.taskConfigs.splice(index, 1);
-						await this.plugin.saveSettings();
+				headingSelect.addEventListener("change", async () => {
+					const item = this.plugin.settings.taskConfigs[index];
+					if (!item) return;
+					if (headingSelect.value === "__manual__") {
+						this.manualHeadingDrafts.add(index);
 						await this.display();
-					}),
-				)
-				.settingEl.addClass("ob-calendar-task-config-item");
-		}
-
-		new Setting(containerEl).addButton((btn) =>
-			btn
-				.setButtonText("添加任务")
-				.setClass("ob-calendar-add-heading-btn")
-				.onClick(async () => {
-					this.manualHeadingDrafts.clear();
-					this.plugin.settings.taskConfigs.push(this.createDefaultTaskConfig());
+						return;
+					}
+					this.manualHeadingDrafts.delete(index);
+					item.heading = headingSelect.value.trim();
 					await this.plugin.saveSettings();
 					await this.display();
-				}),
-		);
+				});
+
+				// Manual heading
+				if (isEditingManualHeading) {
+					const manualRow = fieldsEl.createDiv({
+						cls: "ob-calendar-task-field",
+					});
+					manualRow.createEl("label", { text: "手动标题" });
+					const manualInput = document.createElement("input");
+					manualInput.type = "text";
+					manualInput.placeholder = "输入标题名称";
+					manualInput.value = currentHeading;
+					manualRow.appendChild(manualInput);
+
+					const commitManualHeading = async () => {
+						const item = this.plugin.settings.taskConfigs[index];
+						if (!item) return;
+						item.heading = manualInput.value.trim();
+						this.manualHeadingDrafts.delete(index);
+						await this.plugin.saveSettings();
+						await this.display();
+					};
+
+					manualInput.addEventListener("input", () => {
+						const item = this.plugin.settings.taskConfigs[index];
+						if (!item) return;
+						item.heading = manualInput.value.trim();
+					});
+
+					manualInput.addEventListener("blur", () => {
+						void commitManualHeading();
+					});
+
+					manualInput.addEventListener("keydown", (event) => {
+						if (event.key !== "Enter") return;
+						event.preventDefault();
+						manualInput.blur();
+					});
+				}
+
+				// Colors
+				const colorRow = fieldsEl.createDiv({
+					cls: "ob-calendar-task-field",
+				});
+				colorRow.createEl("label", { text: "颜色" });
+
+				const lightColorInput = document.createElement("input");
+				lightColorInput.type = "color";
+				lightColorInput.value = config.lightColor || "#cccccc";
+				colorRow.appendChild(lightColorInput);
+
+				lightColorInput.addEventListener("input", () => {
+					const item = this.plugin.settings.taskConfigs[index];
+					if (item) item.lightColor = lightColorInput.value;
+				});
+
+				const darkColorInput = document.createElement("input");
+				darkColorInput.type = "color";
+				darkColorInput.value = config.darkColor || "#555555";
+				colorRow.appendChild(darkColorInput);
+
+				darkColorInput.addEventListener("input", () => {
+					const item = this.plugin.settings.taskConfigs[index];
+					if (item) item.darkColor = darkColorInput.value;
+				});
+
+				setting.addExtraButton((btn) => {
+					btn
+						.setIcon("trash")
+						.setTooltip("删除")
+						.onClick(async () => {
+							this.manualHeadingDrafts.delete(index);
+							this.plugin.settings.taskConfigs.splice(index, 1);
+							await this.display();
+						});
+				});
+			});
+		}
+
+		// Add button
+		group.addSetting((setting) => {
+			setting.addButton((btn) => {
+				btn
+					.setIcon("plus")
+					.setButtonText("添加任务")
+					.onClick(async () => {
+						this.manualHeadingDrafts.clear();
+						this.plugin.settings.taskConfigs.push(
+							this.createDefaultTaskConfig(),
+						);
+						await this.display();
+					});
+			});
+		});
 	}
 
 	private renderCalendarPreferences(containerEl: HTMLElement): void {

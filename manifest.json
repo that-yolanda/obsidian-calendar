@@ -2,7 +2,7 @@
 	"id": "obsidian-calendar",
 	"name": "Obsidian Calendar",
 	"version": "0.0.3",
-	"minAppVersion": "0.15.0",
+	"minAppVersion": "1.11.0",
 	"description": "A calendar view for managing tasks in Obsidian.",
 	"author": "Yolanda",
 	"authorUrl": "https://github.com/that-yolanda",

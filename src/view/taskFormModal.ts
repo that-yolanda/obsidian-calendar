@@ -80,7 +80,7 @@ export class TaskFormModal extends Modal {
 		this.markdownPreviewComponent = new Component();
 		this.markdownPreviewComponent.load();
 
-		const { form, nameInput, getFormData } = buildTaskForm(
+		const { form, getFormData } = buildTaskForm(
 			contentEl,
 			this.app,
 			this.markdownPreviewComponent,
@@ -156,8 +156,6 @@ export class TaskFormModal extends Modal {
 			this.resolve = null;
 			this.close();
 		});
-
-		nameInput.focus();
 	}
 
 	onClose(): void {
