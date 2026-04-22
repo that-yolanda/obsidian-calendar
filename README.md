@@ -40,6 +40,6 @@ Obsidian 加载和发布都依赖这些文件位于插件目录顶层：
 
 然后在 Obsidian 里重载插件并启用它。
 
-## Support
+## License
 
-If you find this plugin useful, you can buy me a coffee on [Ko-fi](https://ko-fi.com/thatyolanda).
+Baseline is licensed under the [MIT license](LICENSE).
