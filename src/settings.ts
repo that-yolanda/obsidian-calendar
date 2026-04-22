@@ -128,8 +128,8 @@ export class CalendarSettingTab extends PluginSettingTab {
 			type: "daily-note",
 			heading: "",
 			targetFile: "",
-			lightColor: "#8b5cf6",
-			darkColor: "#a78bfa",
+			lightColor: "#cccccc",
+			darkColor: "#555555",
 		};
 	}
 
@@ -352,7 +352,6 @@ export class CalendarSettingTab extends PluginSettingTab {
 			new Setting(itemContainer)
 				.addButton((btn) =>
 					btn
-						.setWarning()
 						.setButtonText("删除任务")
 						.onClick(async () => {
 							this.manualHeadingDrafts.clear();
