@@ -11,45 +11,48 @@ import listPlugin from "@fullcalendar/list";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import { type App, TFile } from "obsidian";
 import { mapEventsToInputs } from "../services/eventMapper";
-import type { CalendarEvent, ObCalendarSettings, TaskStatus } from "../types";
+import {
+	type CalendarEvent,
+	type ObCalendarSettings,
+	TASK_STATUS_CHAR_MAP,
+	type TaskStatus,
+} from "../types";
 import type { TaskDetailData } from "./taskFormModal";
 
-const STATUS_DATA_TASK: Record<TaskStatus, string> = {
-	initial: " ",
-	completed: "✓",
-	incomplete: "/",
-	cancelled: "x",
-};
-
-function renderEventContent(arg: EventContentArg): {
-	html: string;
-} {
+function renderEventContent(arg: EventContentArg): { domNodes: HTMLElement[] } {
 	const status = arg.event.extendedProps.status as TaskStatus;
-	const dataTask = STATUS_DATA_TASK[status] ?? " ";
-	const title = escapeHtml(arg.event.title);
-	const isChecked = status !== "initial";
-	const checkedAttr = isChecked ? "checked" : "";
-	const isCheckedClass = isChecked ? " is-checked" : "";
+	const statusChar =
+		(arg.event.extendedProps.statusChar as string | undefined) ??
+		TASK_STATUS_CHAR_MAP[status] ??
+		" ";
+	const container = document.createElement("div");
+	container.className = "markdown-rendered";
+
+	const itemEl = document.createElement("div");
+	itemEl.className = "ob-calendar-task-row";
+	itemEl.setAttribute("data-task", statusChar);
+	if (status !== "initial") {
+		itemEl.classList.add("is-checked");
+	}
+
+	const checkboxEl = document.createElement("input");
+	checkboxEl.type = "checkbox";
+	checkboxEl.setAttribute("data-task", statusChar);
+	checkboxEl.className = "task-list-item-checkbox";
+	checkboxEl.disabled = true;
+	checkboxEl.tabIndex = -1;
+	checkboxEl.checked = status !== "initial";
+
+	const titleEl = document.createElement("span");
+	titleEl.className = "ob-calendar-task-title";
+	titleEl.textContent = arg.event.title;
+
+	itemEl.append(checkboxEl, titleEl);
+	container.append(itemEl);
 
 	return {
-		html: `<div class="ob-calendar-task-content markdown-rendered">
-				<ul class="contains-task-list">
-					<li class="task-list-item${isCheckedClass}" data-task="${dataTask}">
-						<input type="checkbox" class="task-list-item-checkbox" ${checkedAttr} disabled tabindex="-1" />
-						<span class="ob-calendar-task-title">${title}</span>
-					</li>
-				</ul>
-			</div>`,
+		domNodes: [container],
 	};
-}
-
-function escapeHtml(value: string): string {
-	return value
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#39;");
 }
 
 export interface SelectInfo {
@@ -111,7 +114,7 @@ export function renderCalendar(
 			: { hour: "numeric", minute: "2-digit", hour12: true },
 
 		eventClick(info: EventClickArg) {
-			const { sourcePath, lineNumber, status, details, headingIndex } =
+			const { sourcePath, lineNumber, status, details, configIndex } =
 				info.event.extendedProps;
 			if (!sourcePath) return;
 
@@ -128,7 +131,7 @@ export function renderCalendar(
 					? info.event.endStr.slice(11, 16)
 					: "",
 				details: details ?? "",
-				headingIndex: headingIndex ?? 0,
+				configIndex: configIndex ?? 0,
 				sourcePath,
 				lineNumber,
 			};

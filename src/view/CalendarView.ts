@@ -38,10 +38,6 @@ export class CalendarView extends ItemView {
 		container.empty();
 		container.classList.add("ob-calendar-wrapper");
 
-		const calendarEl = container.createEl("div", {
-			cls: "ob-calendar-container",
-		});
-
 		const events = await this.plugin.dailyNoteService.scanDailyNotes();
 
 		const callbacks: CalendarCallbacks = {
@@ -63,7 +59,7 @@ export class CalendarView extends ItemView {
 		};
 
 		this.calendar = renderCalendar(
-			calendarEl,
+			container,
 			events,
 			this.plugin.settings,
 			this.app,
@@ -84,7 +80,7 @@ export class CalendarView extends ItemView {
 		this.calendar?.updateSize();
 	}
 
-	private refreshCalendar(): void {
+	public refreshCalendar(): void {
 		if (!this.calendar) return;
 
 		const events = this.plugin.dailyNoteService.getCachedEvents();
@@ -100,12 +96,13 @@ export class CalendarView extends ItemView {
 	private handleEventClick(eventData: TaskDetailData): void {
 		new TaskFormModal(this.app, {
 			mode: "edit",
-			taskHeadings: this.plugin.settings.taskHeadings,
+			taskConfigs: this.plugin.settings.taskConfigs,
 			initialData: eventData,
 			onSave: async (sourcePath, lineNumber, formData) => {
 				await this.plugin.dailyNoteService.updateTask(
 					sourcePath,
 					lineNumber,
+					eventData.configIndex,
 					formData,
 				);
 			},
@@ -133,7 +130,7 @@ export class CalendarView extends ItemView {
 
 		const modal = new TaskFormModal(this.app, {
 			mode: "create",
-			taskHeadings: this.plugin.settings.taskHeadings,
+			taskConfigs: this.plugin.settings.taskConfigs,
 			initialData: {
 				allDay: selectInfo.allDay,
 				startDate,
@@ -153,7 +150,7 @@ export class CalendarView extends ItemView {
 	}
 
 	private async handleEventDrop(info: EventDropArg): Promise<void> {
-		const { sourcePath, lineNumber, headingIndex } = info.event.extendedProps;
+		const { sourcePath, lineNumber, configIndex } = info.event.extendedProps;
 		if (!sourcePath) {
 			info.revert();
 			return;
@@ -163,7 +160,7 @@ export class CalendarView extends ItemView {
 			await this.plugin.dailyNoteService.moveTask(
 				sourcePath,
 				lineNumber,
-				headingIndex ?? 0,
+				configIndex ?? 0,
 				{
 					newStartDate: info.event.startStr.slice(0, 10),
 					newStartTime: info.event.startStr.includes("T")

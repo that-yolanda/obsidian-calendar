@@ -1,13 +1,15 @@
-/* ===== Calendar Container ===== */
 .ob-calendar-wrapper {
 	height: 100%;
 	padding: var(--size-4-4);
 }
 
-.ob-calendar-container {
+.is-phone .ob-calendar-wrapper {
+	padding: var(--size-4-2);
+}
+
+.fc{
 	height: 100%;
 
-	/* FullCalendar -> Obsidian CSS variable mapping */
 	--fc-button-text-color: var(--text-normal);
 	--fc-button-bg-color: var(--interactive-normal);
 	--fc-button-border-color: var(--interactive-normal);
@@ -15,7 +17,6 @@
 	--fc-button-hover-border-color: var(--interactive-hover);
 	--fc-button-active-border-color: var(--interactive-accent);
 	--fc-button-active-bg-color: var(--interactive-accent);
-	--fc-button-active-text-color: var(--text-on-accent);
 
 	--fc-event-border-color: var(--interactive-accent);
 	--fc-event-bg-color: var(--interactive-accent);
@@ -25,105 +26,76 @@
 	--fc-neutral-bg-color: var(--background-primary-alt);
 	--fc-page-bg-color: var(--background-primary);
 	--fc-border-color: var(--background-modifier-border);
-	--fc-now-indicator-color: var(--text-error-hover);
-	--fc-today-bg-color: var(--background-modifier-cover);
+	--fc-now-indicator-color: var(--text-error);
+	--fc-today-bg-color: rgba(var(--color-blue-rgb), 0.08);
 	--fc-highlight-color: var(--text-highlight-bg);
 	--fc-more-link-bg-color: var(--background-primary-alt);
 	--fc-more-link-text-color: var(--text-accent);
 	--fc-neutral-text-color: var(--text-muted);
-	--fc-non-business-color: var(--background-modifier-box-shadow);
-	--fc-col-header-cell-cushion-color: var(--text-normal);
-	--fc-daygrid-day-number-color: var(--text-normal);
-	--fc-list-event-title-color: var(--text-normal);
-	--fc-list-day-cushion-color: var(--text-normal);
+	--fc-non-business-color: rgba(var(--mono-rgb-100), 0.04);
 }
 
-/* ===== Button Overrides ===== */
-.ob-calendar-container .fc .fc-button {
-	border: none !important;
-	box-shadow: none !important;
-	line-height: 1.4 !important;
-	padding: var(--size-4-1) var(--size-4-3) !important;
-	border-radius: var(--radius-s) !important;
-	font-size: var(--font-ui-small) !important;
-	font-weight: var(--font-medium) !important;
-	min-height: 26px !important;
-	display: inline-flex !important;
-	align-items: center !important;
-	justify-content: center !important;
+
+.fc .fc-button {
+	border: none;
+	box-shadow: none;
+	border-radius: var(--radius-s);
+	min-height: 26px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 }
 
-.ob-calendar-container .fc .fc-button-active {
-	color: var(--text-on-accent) !important;
-	background-color: var(--interactive-accent) !important;
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+	color: var(--text-on-accent);
+	background-color: var(--interactive-accent);
+	border-color: var(--interactive-accent);
 }
-
-.ob-calendar-container .fc .fc-button-group > .fc-button {
-	border-radius: var(--radius-s) !important;
-	margin-left: var(--size-2-1) !important;
+.fc .fc-button-group > .fc-button {
+	border-radius: var(--radius-s);
+	margin-left: var(--size-2-1);
 }
-
-/* ===== Links ===== */
-.ob-calendar-container .fc a {
+.fc a {
 	text-decoration-line: none;
 }
 
-/* ===== Toolbar ===== */
-.ob-calendar-container .fc .fc-toolbar-title {
-	font-size: var(--font-ui-large) !important;
-	font-weight: var(--font-bold) !important;
-}
 
-/* ===== Header Cells ===== */
-.ob-calendar-container .fc .fc-col-header-cell {
+.fc .fc-col-header-cell {
 	padding: var(--size-4-1) 0;
 }
 
-/* ===== Day Numbers ===== */
-.ob-calendar-container .fc .fc-daygrid-day-number {
+.fc .fc-col-header-cell-cushion {
+	color: var(--text-normal);
+}
+
+.fc .fc-daygrid-day-number {
 	padding: var(--size-4-1) var(--size-4-2);
+	color: var(--text-normal);
+}
+
+.fc .fc-event {
 	font-size: var(--font-ui-small);
-}
-
-/* ===== Events ===== */
-.ob-calendar-container .fc .fc-event {
-	border-radius: var(--radius-s);
-	padding: 1px 4px;
-	font-size: var(--font-ui-smaller);
-}
-
-.ob-calendar-container .fc .fc-event .ob-calendar-task-content {
-	overflow: hidden;
-}
-
-.ob-calendar-container .fc .fc-event .ob-calendar-task-content .contains-task-list {
-	margin: 0;
 	padding: 0;
 }
 
-.ob-calendar-container .fc .fc-event .ob-calendar-task-content .task-list-item {
+.fc .fc-event-main {
+	padding: 1px 4px;
+}
+
+
+.ob-calendar-task-row {
 	display: flex;
 	align-items: center;
 	gap: 3px;
-	margin: 0;
-	padding: 0;
-	list-style: none;
+	overflow: hidden;
 }
 
-.ob-calendar-container .fc .fc-event .ob-calendar-task-content .task-list-item-checkbox {
-	flex-shrink: 0;
-	margin: 0;
+.fc .task-list-item-checkbox {
 	pointer-events: none;
 }
 
-.ob-calendar-container .fc .fc-event .ob-calendar-task-title {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-/* ===== Completed Tasks ===== */
-.ob-calendar-task-completed {
+.fc .ob-calendar-task-completed {
 	opacity: 0.6;
 }
 
@@ -131,41 +103,43 @@
 	text-decoration: line-through;
 }
 
-/* ===== Now Indicator ===== */
-.ob-calendar-container .fc .fc-timegrid-now-indicator-line {
-	border-color: var(--text-error-hover);
+.fc .fc-timegrid-now-indicator-line {
+	border-color: var(--text-error);
 }
 
-/* ===== List View ===== */
-.ob-calendar-container .fc .fc-list-day-cushion {
-	background-color: var(--background-secondary) !important;
+.fc .fc-list-day-cushion {
+	background-color: var(--background-secondary);
+	color: var(--text-normal);
 }
 
-/* ===== Scrollbar ===== */
-.ob-calendar-container .fc .fc-scroller {
+.fc .fc-list-event-title,
+.fc .fc-list-event-title a,
+.fc .fc-list-day-text,
+.fc .fc-list-day-side-text {
+	color: var(--text-normal);
+}
+
+.fc .fc-scroller {
 	scrollbar-width: thin;
 }
 
-/* ===== Mobile ===== */
-.is-phone .ob-calendar-wrapper {
-	padding: var(--size-4-2);
-}
 
-.is-phone .ob-calendar-container .fc .fc-toolbar {
+.is-phone .fc .fc-toolbar {
 	flex-direction: column;
 	gap: var(--size-4-2);
 }
 
-/* ===== Modal Title ===== */
-/* ===== Modal Common ===== */
-.ob-calendar-modal .ob-calendar-form,
-.ob-calendar-modal .ob-calendar-detail-grid {
+.ob-calendar-modal *{
+	font-size: var(--font-ui-small);
+}
+
+.ob-calendar-modal .ob-calendar-form {
 	display: flex;
 	flex-direction: column;
 }
 
 .ob-calendar-modal .setting-item {
-	border: none !important;
+	border: none;
 }
 
 .ob-calendar-modal .ob-calendar-toggle-setting {
@@ -177,7 +151,6 @@
 }
 
 .ob-calendar-modal .setting-item .setting-item-info .setting-item-name {
-	font-size: var(--font-ui-small);
 	color: var(--text-muted);
 	text-align: left;
 }
@@ -187,17 +160,14 @@
 	justify-content: flex-start;
 }
 
-.ob-calendar-modal .setting-item .setting-item-control > input:not([type="checkbox"]),
-.ob-calendar-modal .setting-item .setting-item-control > select,
-.ob-calendar-modal .setting-item .setting-item-control > textarea {
+.ob-calendar-modal .setting-item-control > :is(input, select, textarea):not([type="checkbox"]) {
 	width: 100%;
 	background: var(--background-modifier-form-field);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-s);
 	padding: var(--size-4-1) var(--size-4-2);
 	color: var(--text-normal);
-	font-size: var(--font-ui-small);
-	font-family: inherit;
+	font: inherit;
 }
 
 .ob-calendar-modal .ob-calendar-toggle-setting .setting-item-control {
@@ -230,7 +200,6 @@
 	margin-top: var(--size-4-4);
 }
 
-/* ===== Markdown Editor ===== */
 .ob-calendar-md-editor {
 	--ob-calendar-md-field-height: 110px;
 	--ob-calendar-md-field-padding-y: var(--size-4-2);
@@ -258,11 +227,14 @@
 .ob-calendar-md-textarea {
 	position: absolute;
 	inset: 0;
-	box-sizing: border-box;
 	width: 100%;
 	height: 100%;
+	box-sizing: border-box;
 	padding: var(--ob-calendar-md-field-padding-y)
 		var(--ob-calendar-md-field-padding-x);
+	color: var(--text-normal);
+	font: inherit;
+	line-height: var(--line-height-normal);
 }
 
 .ob-calendar-md-preview {
@@ -270,11 +242,6 @@
 	border: none;
 	overflow-y: auto;
 	cursor: text;
-	color: var(--text-normal);
-	font-size: var(--font-ui-small);
-	font-family: inherit;
-	line-height: var(--line-height-normal);
-	text-align: left;
 }
 
 .ob-calendar-md-preview.is-empty {
@@ -282,17 +249,15 @@
 }
 
 .ob-calendar-md-preview .markdown-preview-view {
-	padding: 0 !important;
+	padding: 0;
 	margin: 0;
-	font-size: inherit;
-	font-family: inherit;
-	line-height: inherit;
+	font: inherit;
 	text-align: left;
 }
 
 .ob-calendar-md-preview .markdown-preview-view > .markdown-preview-sizer {
-	padding: 0 !important;
-	margin: 0 !important;
+	padding: 0;
+	margin: 0;
 }
 
 .ob-calendar-md-preview .markdown-preview-view,
@@ -320,10 +285,6 @@
 	resize: none;
 	background: transparent;
 	border: none;
-	color: var(--text-normal);
-	font-size: var(--font-ui-small);
-	font-family: inherit;
-	line-height: var(--line-height-normal);
 	outline: none;
 	overflow-y: auto;
 }
@@ -373,19 +334,33 @@
 
 .ob-calendar-status-label {
 	color: var(--text-normal);
-	font-size: var(--font-ui-small);
-}
-
-/* ===== Settings Page ===== */
-.ob-calendar-settings .ob-calendar-setting-desc {
-	font-size: var(--font-ui-small);
-	color: var(--text-muted);
-	margin-bottom: var(--size-4-2);
-	padding-left: 0;
 }
 
 .ob-calendar-settings .ob-calendar-heading-item {
-	border-bottom: 1px solid var(--background-modifier-border);
 	padding-bottom: var(--size-4-2);
 	margin-bottom: var(--size-4-2);
+}
+
+.ob-calendar-settings .ob-calendar-heading-item .setting-item-info {
+	display: none;
+}
+
+.ob-calendar-settings .ob-calendar-heading-item .setting-item-control {
+	width: 100%;
+	justify-content: flex-start;
+	gap: var(--size-4-2);
+}
+
+.ob-calendar-settings .ob-calendar-heading-item .ob-calendar-heading-item-control select {
+	min-width: 0;
+	width: 100%;
+	flex: 1 1 auto;
+}
+
+.ob-calendar-settings .ob-calendar-heading-item input[type="color"] {
+	flex: 0 0 auto;
+}
+
+.ob-calendar-settings .ob-calendar-heading-item .clickable-icon {
+	margin-inline-start: 0;
 }

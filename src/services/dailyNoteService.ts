@@ -1,18 +1,13 @@
 import { type App, type CachedMetadata, normalizePath, TFile } from "obsidian";
-import type {
-	CalendarEvent,
-	ObCalendarSettings,
-	TaskFormData,
-	TaskInfo,
-	TaskStatus,
+import {
+	type CalendarEvent,
+	type ObCalendarSettings,
+	TASK_CHAR_STATUS_MAP,
+	TASK_STATUS_CHAR_MAP,
+	type TaskConfig,
+	type TaskFormData,
+	type TaskInfo,
 } from "../types";
-
-const STATUS_MAP: Record<string, TaskStatus> = {
-	" ": "initial",
-	"✓": "completed",
-	"/": "incomplete",
-	x: "cancelled",
-};
 
 export class DailyNoteService {
 	private app: App;
@@ -42,10 +37,9 @@ export class DailyNoteService {
 
 	async scanDailyNotes(): Promise<CalendarEvent[]> {
 		this.cache.clear();
-		const files = this.getDailyNoteFiles();
-		const allEvents: CalendarEvent[] = [];
 
-		for (const file of files) {
+		const allEvents: CalendarEvent[] = [];
+		for (const file of this.getConfiguredFiles()) {
 			const events = await this.parseFile(file);
 			if (events.length > 0) {
 				this.cache.set(file.path, events);
@@ -65,9 +59,15 @@ export class DailyNoteService {
 	}
 
 	async handleFileChange(file: TFile): Promise<void> {
-		if (!this.isDailyNote(file)) return;
+		const applicableConfigIndices = this.getApplicableConfigIndices(file);
+		if (applicableConfigIndices.length === 0) {
+			if (this.cache.delete(file.path)) {
+				this.notifyListeners();
+			}
+			return;
+		}
 
-		const events = await this.parseFile(file);
+		const events = await this.parseFile(file, applicableConfigIndices);
 		if (events.length > 0) {
 			this.cache.set(file.path, events);
 		} else {
@@ -83,106 +83,55 @@ export class DailyNoteService {
 		}
 	}
 
-	// --- Task creation ---
-
 	async appendTaskToDailyNote(
-		date: string,
+		_date: string,
 		formData: TaskFormData,
 	): Promise<void> {
-		const folder = this.settings.dailyNoteFolder;
-		const fileName = `${date}.md`;
-		const filePath = folder ? `${folder}/${fileName}` : fileName;
-
-		let file: TFile | null = this.app.vault.getAbstractFileByPath(
-			filePath,
-		) as TFile | null;
-		let content: string;
-
-		if (file instanceof TFile) {
-			content = await this.app.vault.read(file);
-		} else {
-			if (folder) {
-				await this.ensureFolderExists(folder);
-			}
-			content = await this.readTemplateContent();
-			file = await this.app.vault.create(filePath, content);
-		}
-
-		const headingConfig = this.settings.taskHeadings[formData.headingIndex];
-		const headingName = headingConfig?.heading ?? "";
-		const taskLine = this.formatTaskLine(formData);
-		const { insertionPoint, headingExists } = this.findTaskInsertionPoint(
-			content,
-			headingName,
-		);
-
-		const lines = content.split("\n");
-
-		if (!headingExists && headingName) {
-			this.appendTaskSection(lines, headingName, taskLine);
-		} else {
-			this.removeBlankLinesAt(lines, insertionPoint);
-			lines.splice(insertionPoint, 0, taskLine);
-		}
-
-		await this.app.vault.modify(file, lines.join("\n"));
+		const config = this.getTaskConfig(formData.configIndex);
+		const taskBlock = this.formatTaskLine(formData, config.type);
+		await this.appendRawTaskToConfig(config, formData.startDate, taskBlock);
 	}
-
-	// --- Task update ---
 
 	async updateTask(
 		sourcePath: string,
 		lineNumber: number,
+		originalConfigIndex: number,
 		formData: TaskFormData,
 	): Promise<void> {
-		const file = this.app.vault.getAbstractFileByPath(sourcePath);
-		if (!(file instanceof TFile)) throw new Error("File not found");
+		const nextConfig = this.getTaskConfig(formData.configIndex);
+		const targetPath = this.getTargetFilePath(nextConfig, formData.startDate);
+		const updatedBlock = this.formatTaskLine(formData, nextConfig.type);
 
-		const content = await this.app.vault.read(file);
-		const lines = content.split("\n");
-		const line = lines[lineNumber];
-		if (!line) throw new Error("Task line not found");
-
-		const statusChar: Record<TaskStatus, string> = {
-			initial: " ",
-			completed: "✓",
-			incomplete: "/",
-			cancelled: "x",
-		};
-		const checkbox = statusChar[formData.status] ?? " ";
-
-		let newLine = `- [${checkbox}] ${formData.name}`;
-
-		if (!formData.allDay) {
-			newLine += ` {${formData.startDate} ${formData.startTime} - ${formData.endDate} ${formData.endTime}}`;
+		if (
+			originalConfigIndex === formData.configIndex &&
+			targetPath === sourcePath
+		) {
+			await this.replaceTaskBlock(sourcePath, lineNumber, updatedBlock);
+			return;
 		}
 
-		// Count detail lines after the task line
-		let detailEnd = lineNumber + 1;
-		while (detailEnd < lines.length) {
-			const nextLine = lines[detailEnd];
-			if (!nextLine || !/^\s+(.+)/.test(nextLine)) break;
-			detailEnd++;
+		const removedBlock = await this.removeTaskBlock(sourcePath, lineNumber);
+		try {
+			await this.appendRawTaskToConfig(
+				nextConfig,
+				formData.startDate,
+				updatedBlock || removedBlock,
+			);
+		} catch (error) {
+			const originalConfig = this.getTaskConfig(originalConfigIndex);
+			await this.appendRawTaskToConfig(
+				originalConfig,
+				this.getOriginalTaskDate(sourcePath, removedBlock, originalConfig.type),
+				removedBlock,
+			);
+			throw error;
 		}
-
-		// Build replacement block
-		const replacement: string[] = [newLine];
-		if (formData.details) {
-			for (const d of formData.details.split("\n")) {
-				replacement.push(`\t${d}`);
-			}
-		}
-
-		lines.splice(lineNumber, detailEnd - lineNumber, ...replacement);
-		await this.app.vault.modify(file, lines.join("\n"));
 	}
-
-	// --- Task move/resize ---
 
 	async moveTask(
 		sourcePath: string,
 		lineNumber: number,
-		headingIndex: number,
+		configIndex: number,
 		newTime: {
 			newStartDate: string;
 			newStartTime?: string;
@@ -191,52 +140,25 @@ export class DailyNoteService {
 			allDay: boolean;
 		},
 	): Promise<void> {
-		const sourceFile = this.app.vault.getAbstractFileByPath(sourcePath);
-		if (!(sourceFile instanceof TFile))
-			throw new Error("Source file not found");
+		const config = this.getTaskConfig(configIndex);
+		const targetPath = this.getTargetFilePath(config, newTime.newStartDate);
 
-		const sourceDate = this.extractDateFromFileName(sourceFile.name);
-		if (!sourceDate) throw new Error("Cannot extract date from source file");
-
-		if (sourceDate === newTime.newStartDate) {
-			await this.updateTaskTime(
-				sourcePath,
-				lineNumber,
-				newTime.newStartTime,
-				newTime.newEndDate ?? newTime.newStartDate,
-				newTime.newEndTime,
-				newTime.allDay,
+		if (config.type === "daily-note" && targetPath !== sourcePath) {
+			const removedBlock = await this.removeTaskBlock(sourcePath, lineNumber);
+			const updatedBlock = this.rewriteTaskDates(
+				removedBlock,
+				newTime,
+				config.type,
+			);
+			await this.appendRawTaskToConfig(
+				config,
+				newTime.newStartDate,
+				updatedBlock,
 			);
 			return;
 		}
 
-		const content = await this.app.vault.read(sourceFile);
-		const lines = content.split("\n");
-		const taskLine = lines[lineNumber];
-		if (!taskLine) throw new Error("Task line not found");
-
-		const removedLines: string[] = [taskLine];
-		let j = lineNumber + 1;
-		while (j < lines.length) {
-			const nextLine = lines[j];
-			if (!nextLine || !/^\s+(.+)/.test(nextLine)) break;
-			removedLines.push(nextLine);
-			j++;
-		}
-
-		lines.splice(lineNumber, j - lineNumber);
-		await this.app.vault.modify(sourceFile, lines.join("\n"));
-
-		const updatedBlock = this.rewriteTaskDates(
-			removedLines.join("\n"),
-			newTime,
-		);
-		const headingConfig = this.settings.taskHeadings[headingIndex];
-		await this.appendRawTaskToDailyNote(
-			newTime.newStartDate,
-			headingConfig?.heading ?? "",
-			updatedBlock,
-		);
+		await this.updateTaskTime(sourcePath, lineNumber, newTime, config.type);
 	}
 
 	async resizeTask(
@@ -262,11 +184,388 @@ export class DailyNoteService {
 		await this.app.vault.modify(file, lines.join("\n"));
 	}
 
-	// --- Private helpers ---
+	private getTaskConfig(index: number): TaskConfig {
+		const config = this.settings.taskConfigs[index];
+		if (!config) {
+			throw new Error("Task config not found");
+		}
+		return config;
+	}
+
+	private getConfiguredFiles(): TFile[] {
+		const files = new Map<string, TFile>();
+		const hasDailyNoteConfig = this.settings.taskConfigs.some(
+			(config) => config.type === "daily-note",
+		);
+
+		if (hasDailyNoteConfig) {
+			for (const file of this.getDailyNoteFiles()) {
+				files.set(file.path, file);
+			}
+		}
+
+		for (const config of this.settings.taskConfigs) {
+			if (config.type !== "file" || !config.targetFile) continue;
+
+			const file = this.app.vault.getAbstractFileByPath(
+				normalizePath(config.targetFile),
+			);
+			if (file instanceof TFile) {
+				files.set(file.path, file);
+			}
+		}
+
+		return [...files.values()];
+	}
+
+	private getApplicableConfigIndices(file: TFile): number[] {
+		const indices: number[] = [];
+
+		for (const [index, config] of this.settings.taskConfigs.entries()) {
+			if (!config.heading) continue;
+
+			if (config.type === "daily-note" && this.isDailyNote(file)) {
+				indices.push(index);
+				continue;
+			}
+
+			if (
+				config.type === "file" &&
+				config.targetFile &&
+				normalizePath(config.targetFile) === file.path
+			) {
+				indices.push(index);
+			}
+		}
+
+		return indices;
+	}
+
+	private async parseFile(
+		file: TFile,
+		applicableConfigIndices = this.getApplicableConfigIndices(file),
+	): Promise<CalendarEvent[]> {
+		if (applicableConfigIndices.length === 0) return [];
+
+		const fallbackDate = this.extractDateFromFileName(file.name);
+		const content = await this.app.vault.read(file);
+		const tasks = this.parseTasks(content, fallbackDate);
+		const cache = this.app.metadataCache.getCache(file.path);
+		const filteredTasks = this.filterTasksByConfigs(
+			tasks,
+			content,
+			cache,
+			applicableConfigIndices,
+		);
+
+		return filteredTasks.map((task) => this.taskToEvent(task, file.path));
+	}
+
+	private parseTasks(content: string, fallbackDate: string | null): TaskInfo[] {
+		const tasks: TaskInfo[] = [];
+		const lines = content.split("\n");
+
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i];
+			if (!line) continue;
+
+			const task = this.parseCheckboxLine(line, i, fallbackDate);
+			if (!task) continue;
+
+			const detailLines: string[] = [];
+			let j = i + 1;
+			while (j < lines.length) {
+				const nextLine = lines[j];
+				if (!nextLine || !/^\s+(.+)/.test(nextLine)) break;
+				detailLines.push(nextLine.replace(/^\t/, ""));
+				j++;
+			}
+
+			if (detailLines.length > 0) {
+				task.details = detailLines.join("\n");
+			}
+			tasks.push(task);
+		}
+
+		return tasks;
+	}
+
+	private parseCheckboxLine(
+		line: string,
+		lineNumber: number,
+		fallbackDate: string | null,
+	): TaskInfo | null {
+		const match = line.match(/^-\s+\[([ x✓/])\]\s+(.+)/);
+		if (!match?.[1] || !match[2]) return null;
+
+		const status = TASK_CHAR_STATUS_MAP[match[1]] ?? "initial";
+		let text = match[2].trim();
+
+		let date = fallbackDate ?? "";
+		let startTime: string | undefined;
+		let endTime: string | undefined;
+		let endDate: string | undefined;
+
+		const timedMatch = text.match(
+			/\{(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\}/,
+		);
+		if (timedMatch) {
+			date = timedMatch[1] ?? date;
+			startTime = timedMatch[2];
+			endDate = timedMatch[3];
+			endTime = timedMatch[4];
+			text = text.replace(timedMatch[0], "").trim();
+		} else {
+			const allDayMatch = text.match(/\{(\d{4}-\d{2}-\d{2})\}/);
+			if (allDayMatch?.[1]) {
+				date = allDayMatch[1];
+				text = text.replace(allDayMatch[0], "").trim();
+			}
+		}
+
+		if (!date) return null;
+
+		return {
+			text,
+			status,
+			statusChar: match[1],
+			date,
+			endDate,
+			startTime,
+			endTime,
+			lineNumber,
+			configIndex: -1,
+		};
+	}
+
+	private filterTasksByConfigs(
+		tasks: TaskInfo[],
+		content: string,
+		cache: CachedMetadata | null,
+		configIndices: number[],
+	): TaskInfo[] {
+		if (configIndices.length === 0) return [];
+		if (!cache?.headings) return [];
+
+		const result: TaskInfo[] = [];
+		const lines = content.split("\n");
+
+		for (const configIndex of configIndices) {
+			const config = this.settings.taskConfigs[configIndex];
+			const headingName = config?.heading;
+			if (!headingName) continue;
+
+			const heading = cache.headings.find(
+				(item) => item.heading.toLowerCase() === headingName.toLowerCase(),
+			);
+			if (!heading) continue;
+
+			const headingLine = heading.position.start.line;
+			const headingLevel = heading.level;
+
+			let endLine = lines.length;
+			for (const nextHeading of cache.headings) {
+				if (
+					nextHeading.level <= headingLevel &&
+					nextHeading.position.start.line > headingLine
+				) {
+					endLine = nextHeading.position.start.line;
+					break;
+				}
+			}
+
+			for (const task of tasks) {
+				if (task.lineNumber > headingLine && task.lineNumber < endLine) {
+					result.push({ ...task, configIndex });
+				}
+			}
+		}
+
+		return result;
+	}
+
+	private taskToEvent(task: TaskInfo, sourcePath: string): CalendarEvent {
+		return {
+			id: `${sourcePath}::${task.lineNumber}`,
+			title: task.text,
+			date: task.date,
+			endDate: task.endDate,
+			startTime: task.startTime,
+			endTime: task.endTime,
+			allDay: !task.startTime,
+			completed: task.status === "completed",
+			status: task.status,
+			statusChar: task.statusChar,
+			details: task.details,
+			sourcePath,
+			lineNumber: task.lineNumber,
+			configIndex: task.configIndex,
+		};
+	}
+
+	private formatTaskLine(
+		formData: TaskFormData,
+		configType: TaskConfig["type"],
+	): string {
+		const checkbox = TASK_STATUS_CHAR_MAP[formData.status] ?? " ";
+
+		let line = `- [${checkbox}] ${formData.name}`;
+
+		if (formData.allDay) {
+			if (configType === "file") {
+				line += ` {${formData.startDate}}`;
+			}
+		} else {
+			line += ` {${formData.startDate} ${formData.startTime} - ${formData.endDate} ${formData.endTime}}`;
+		}
+
+		if (formData.details) {
+			const detailLines = formData.details
+				.split("\n")
+				.map((detail) => `\t${detail}`)
+				.join("\n");
+			line += `\n${detailLines}`;
+		}
+
+		return line;
+	}
+
+	private async appendRawTaskToConfig(
+		config: TaskConfig,
+		date: string,
+		taskLine: string,
+	): Promise<void> {
+		const file = await this.ensureTargetFile(config, date);
+		const content = await this.app.vault.read(file);
+		const { insertionPoint, headingExists } = this.findTaskInsertionPoint(
+			content,
+			config.heading,
+		);
+		const lines = content.split("\n");
+
+		if (!headingExists && config.heading) {
+			this.appendTaskSection(lines, config.heading, taskLine);
+		} else {
+			this.removeBlankLinesAt(lines, insertionPoint);
+			lines.splice(insertionPoint, 0, taskLine);
+		}
+
+		await this.app.vault.modify(file, lines.join("\n"));
+	}
+
+	private async replaceTaskBlock(
+		sourcePath: string,
+		lineNumber: number,
+		taskBlock: string,
+	): Promise<void> {
+		const file = this.app.vault.getAbstractFileByPath(sourcePath);
+		if (!(file instanceof TFile)) throw new Error("File not found");
+
+		const content = await this.app.vault.read(file);
+		const lines = content.split("\n");
+		const range = this.getTaskBlockRange(lines, lineNumber);
+		lines.splice(
+			range.start,
+			range.end - range.start,
+			...taskBlock.split("\n"),
+		);
+		await this.app.vault.modify(file, lines.join("\n"));
+	}
+
+	private async removeTaskBlock(
+		sourcePath: string,
+		lineNumber: number,
+	): Promise<string> {
+		const file = this.app.vault.getAbstractFileByPath(sourcePath);
+		if (!(file instanceof TFile)) throw new Error("File not found");
+
+		const content = await this.app.vault.read(file);
+		const lines = content.split("\n");
+		const range = this.getTaskBlockRange(lines, lineNumber);
+		const removedLines = lines.slice(range.start, range.end);
+		lines.splice(range.start, range.end - range.start);
+		await this.app.vault.modify(file, lines.join("\n"));
+		return removedLines.join("\n");
+	}
+
+	private getTaskBlockRange(
+		lines: string[],
+		lineNumber: number,
+	): { start: number; end: number } {
+		const line = lines[lineNumber];
+		if (!line) throw new Error("Task line not found");
+
+		let end = lineNumber + 1;
+		while (end < lines.length) {
+			const nextLine = lines[end];
+			if (!nextLine || !/^\s+(.+)/.test(nextLine)) break;
+			end++;
+		}
+
+		return { start: lineNumber, end };
+	}
+
+	private async ensureTargetFile(
+		config: TaskConfig,
+		date: string,
+	): Promise<TFile> {
+		const filePath = this.getTargetFilePath(config, date);
+		let file = this.app.vault.getAbstractFileByPath(filePath);
+		if (file instanceof TFile) return file;
+
+		const folderPath = filePath.includes("/")
+			? filePath.slice(0, filePath.lastIndexOf("/"))
+			: "";
+		if (folderPath) {
+			await this.ensureFolderExists(folderPath);
+		}
+
+		const initialContent =
+			config.type === "daily-note" ? await this.readTemplateContent() : "";
+		file = await this.app.vault.create(filePath, initialContent);
+		if (!(file instanceof TFile)) {
+			throw new Error("Failed to create task file");
+		}
+
+		return file;
+	}
+
+	private getTargetFilePath(config: TaskConfig, date: string): string {
+		if (config.type === "daily-note") {
+			const folder = this.settings.dailyNoteFolder;
+			const fileName = `${date}.md`;
+			return folder ? `${folder}/${fileName}` : fileName;
+		}
+
+		const targetFile = normalizePath(config.targetFile);
+		if (!targetFile) {
+			throw new Error("Project task target file is required");
+		}
+		return targetFile;
+	}
+
+	private getOriginalTaskDate(
+		sourcePath: string,
+		taskBlock: string,
+		configType: TaskConfig["type"],
+	): string {
+		const timedMatch = taskBlock.match(
+			/\{(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}\s*-\s*\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\}/,
+		);
+		if (timedMatch?.[1]) return timedMatch[1];
+
+		const allDayMatch = taskBlock.match(/\{(\d{4}-\d{2}-\d{2})\}/);
+		if (allDayMatch?.[1]) return allDayMatch[1];
+
+		if (configType === "daily-note") {
+			return this.extractDateFromFilePath(sourcePath) ?? "";
+		}
+
+		return "";
+	}
 
 	private async readTemplateContent(): Promise<string> {
 		const templatePath = this.getDailyNoteTemplatePath();
-
 		if (!templatePath) return "";
 
 		const templateFile = this.app.vault.getAbstractFileByPath(templatePath);
@@ -282,9 +581,9 @@ export class DailyNoteService {
 		const coreTemplatePath: string =
 			appAny.internalPlugins?.getPluginById("daily-notes")?.instance?.options
 				?.template ?? "";
-		// biome-ignore lint/suspicious/noExplicitAny: Obsidian internal/community plugin API
 		const periodicTemplatePath: string =
-			appAny.plugins?.plugins?.["periodic-notes"]?.settings?.daily?.template ?? "";
+			appAny.plugins?.plugins?.["periodic-notes"]?.settings?.daily?.template ??
+			"";
 
 		const rawPath = coreTemplatePath || periodicTemplatePath;
 		if (!rawPath) return "";
@@ -317,6 +616,14 @@ export class DailyNoteService {
 		return this.extractDateFromFileName(file.name) !== null;
 	}
 
+	private extractDateFromFilePath(filePath: string): string | null {
+		const file = this.app.vault.getAbstractFileByPath(filePath);
+		if (file instanceof TFile) {
+			return this.extractDateFromFileName(file.name);
+		}
+		return null;
+	}
+
 	private extractDateFromFileName(fileName: string): string | null {
 		const baseName = fileName.replace(/\.md$/, "");
 		const match = baseName.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -335,176 +642,10 @@ export class DailyNoteService {
 		return `${year}-${month}-${day}`;
 	}
 
-	private async parseFile(file: TFile): Promise<CalendarEvent[]> {
-		const date = this.extractDateFromFileName(file.name);
-		if (!date) return [];
-
-		const content = await this.app.vault.read(file);
-		const tasks = this.parseTasks(content, date);
-		const cache = this.app.metadataCache.getCache(file.path);
-
-		const filteredTasks = this.filterTasksByHeadings(tasks, content, cache);
-
-		return filteredTasks.map((task) => this.taskToEvent(task, file.path));
-	}
-
-	private parseTasks(content: string, date: string): TaskInfo[] {
-		const tasks: TaskInfo[] = [];
-		const lines = content.split("\n");
-
-		for (let i = 0; i < lines.length; i++) {
-			const line = lines[i];
-			if (!line) continue;
-			const task = this.parseCheckboxLine(line, i, date);
-			if (task) {
-				const detailLines: string[] = [];
-				let j = i + 1;
-				while (j < lines.length) {
-					const nextLine = lines[j];
-					if (!nextLine || !/^\s+(.+)/.test(nextLine)) break;
-					detailLines.push(nextLine.replace(/^\t/, ""));
-					j++;
-				}
-				if (detailLines.length > 0) {
-					task.details = detailLines.join("\n");
-				}
-				tasks.push(task);
-			}
-		}
-
-		return tasks;
-	}
-
-	private parseCheckboxLine(
-		line: string,
-		lineNumber: number,
-		date: string,
-	): TaskInfo | null {
-		const match = line.match(/^-\s+\[([ x✓/])\]\s+(.+)/);
-		if (!match?.[1] || !match[2]) return null;
-
-		const status = STATUS_MAP[match[1]] ?? "initial";
-		let text = match[2].trim();
-
-		let startTime: string | undefined;
-		let endTime: string | undefined;
-		let endDate: string | undefined;
-
-		const timeMatch = text.match(
-			/\{(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\}/,
-		);
-		if (timeMatch) {
-			startTime = timeMatch[2];
-			endDate = timeMatch[3];
-			endTime = timeMatch[4];
-			text = text.replace(timeMatch[0], "").trim();
-		}
-
-		return {
-			text,
-			status,
-			date,
-			endDate,
-			startTime,
-			endTime,
-			lineNumber,
-			headingIndex: -1,
-		};
-	}
-
-	private filterTasksByHeadings(
-		tasks: TaskInfo[],
-		content: string,
-		cache: CachedMetadata | null,
-	): TaskInfo[] {
-		const { taskHeadings } = this.settings;
-		if (taskHeadings.length === 0) return tasks;
-		if (!cache?.headings) return tasks;
-
-		const result: TaskInfo[] = [];
-
-		for (let hi = 0; hi < taskHeadings.length; hi++) {
-			const headingName = taskHeadings[hi]?.heading;
-			if (!headingName) continue;
-
-			const heading = cache.headings.find(
-				(h) => h.heading.toLowerCase() === headingName.toLowerCase(),
-			);
-			if (!heading) continue;
-
-			const headingLine = heading.position.start.line;
-			const headingLevel = heading.level;
-
-			let endLine = content.split("\n").length;
-			for (const h of cache.headings) {
-				if (h.level <= headingLevel && h.position.start.line > headingLine) {
-					endLine = h.position.start.line;
-					break;
-				}
-			}
-
-			for (const task of tasks) {
-				if (task.lineNumber > headingLine && task.lineNumber < endLine) {
-					task.headingIndex = hi;
-					result.push(task);
-				}
-			}
-		}
-
-		return result;
-	}
-
-	private taskToEvent(task: TaskInfo, sourcePath: string): CalendarEvent {
-		return {
-			id: `${sourcePath}::${task.lineNumber}`,
-			title: task.text,
-			date: task.date,
-			endDate: task.endDate,
-			startTime: task.startTime,
-			endTime: task.endTime,
-			allDay: !task.startTime,
-			completed: task.status === "completed",
-			status: task.status,
-			details: task.details,
-			sourcePath,
-			lineNumber: task.lineNumber,
-			headingIndex: task.headingIndex,
-		};
-	}
-
-	private formatTaskLine(formData: TaskFormData): string {
-		const statusChar: Record<TaskStatus, string> = {
-			initial: " ",
-			completed: "✓",
-			incomplete: "/",
-			cancelled: "x",
-		};
-		const checkbox = statusChar[formData.status] ?? " ";
-
-		let line = `- [${checkbox}] ${formData.name}`;
-
-		if (!formData.allDay) {
-			line += ` {${formData.startDate} ${formData.startTime} - ${formData.endDate} ${formData.endTime}}`;
-		}
-
-		if (formData.details) {
-			const detailLines = formData.details
-				.split("\n")
-				.map((d) => `\t${d}`)
-				.join("\n");
-			line += `\n${detailLines}`;
-		}
-
-		return line;
-	}
-
 	private findTaskInsertionPoint(
 		content: string,
 		headingName: string,
-	): {
-		insertionPoint: number;
-		headingExists: boolean;
-	} {
+	): { insertionPoint: number; headingExists: boolean } {
 		if (!headingName) {
 			return {
 				insertionPoint: content.split("\n").length,
@@ -522,125 +663,6 @@ export class DailyNoteService {
 		}
 
 		return { insertionPoint: lines.length, headingExists: false };
-	}
-
-	private async ensureFolderExists(folderPath: string): Promise<void> {
-		const parts = folderPath.split("/");
-		let currentPath = "";
-		for (const part of parts) {
-			currentPath = currentPath ? `${currentPath}/${part}` : part;
-			if (!this.app.vault.getAbstractFileByPath(currentPath)) {
-				await this.app.vault.createFolder(currentPath);
-			}
-		}
-	}
-
-	private async updateTaskTime(
-		sourcePath: string,
-		lineNumber: number,
-		newStartTime?: string,
-		newEndDate?: string,
-		newEndTime?: string,
-		allDay = false,
-	): Promise<void> {
-		const file = this.app.vault.getAbstractFileByPath(sourcePath);
-		if (!(file instanceof TFile)) throw new Error("File not found");
-
-		const sourceDate = this.extractDateFromFileName(file.name) ?? "";
-		const content = await this.app.vault.read(file);
-		const lines = content.split("\n");
-		const line = lines[lineNumber];
-		if (!line) throw new Error("Task line not found");
-
-		if (allDay) {
-			lines[lineNumber] = line.replace(/\s*\{[^}]+\}/, "");
-		} else if (newStartTime && newEndDate && newEndTime) {
-			const newBlock = `{${sourceDate} ${newStartTime} - ${newEndDate} ${newEndTime}}`;
-
-			if (/\{[^}]+\}/.test(line)) {
-				lines[lineNumber] = line.replace(/\{[^}]+\}/, newBlock);
-			} else {
-				const match = line.match(/^(\s*-\s+\[[^\]]+\]\s+[^{]+)/);
-				if (match?.[1]) {
-					lines[lineNumber] = `${match[1].trimEnd()} ${newBlock}`;
-				}
-			}
-		}
-
-		await this.app.vault.modify(file, lines.join("\n"));
-	}
-
-	private rewriteTaskDates(
-		taskBlock: string,
-		newTime: {
-			newStartDate: string;
-			newStartTime?: string;
-			newEndDate?: string;
-			newEndTime?: string;
-			allDay: boolean;
-		},
-	): string {
-		const parts = taskBlock.split("\n");
-		const firstLine = parts[0] ?? "";
-		const rest = parts.slice(1).join("\n");
-
-		if (newTime.allDay) {
-			const updated = firstLine.replace(/\s*\{[^}]+\}/, "");
-			return rest ? `${updated}\n${rest}` : updated;
-		}
-
-		const newTimeBlock = `{${newTime.newStartDate} ${newTime.newStartTime} - ${newTime.newEndDate ?? newTime.newStartDate} ${newTime.newEndTime}}`;
-
-		if (/\{[^}]+\}/.test(firstLine)) {
-			const updated = firstLine.replace(/\{[^}]+\}/, newTimeBlock);
-			return rest ? `${updated}\n${rest}` : updated;
-		}
-
-		const match = firstLine.match(/^(\s*-\s+\[[^\]]+\]\s+[^{]+)/);
-		if (match?.[1]) {
-			const updated = `${match[1].trimEnd()} ${newTimeBlock}`;
-			return rest ? `${updated}\n${rest}` : updated;
-		}
-
-		return taskBlock;
-	}
-
-	private async appendRawTaskToDailyNote(
-		date: string,
-		headingName: string,
-		taskLine: string,
-	): Promise<void> {
-		const folder = this.settings.dailyNoteFolder;
-		const fileName = `${date}.md`;
-		const filePath = folder ? `${folder}/${fileName}` : fileName;
-
-		let file: TFile | null = this.app.vault.getAbstractFileByPath(
-			filePath,
-		) as TFile | null;
-
-		if (!(file instanceof TFile)) {
-			if (folder) {
-				await this.ensureFolderExists(folder);
-			}
-			const content = await this.readTemplateContent();
-			file = await this.app.vault.create(filePath, content);
-		}
-
-		const content = await this.app.vault.read(file);
-		const { insertionPoint, headingExists } = this.findTaskInsertionPoint(
-			content,
-			headingName,
-		);
-		const lines = content.split("\n");
-
-		if (!headingExists && headingName) {
-			this.appendTaskSection(lines, headingName, taskLine);
-		} else {
-			this.removeBlankLinesAt(lines, insertionPoint);
-			lines.splice(insertionPoint, 0, taskLine);
-		}
-
-		await this.app.vault.modify(file, lines.join("\n"));
 	}
 
 	private appendTaskSection(
@@ -668,5 +690,83 @@ export class DailyNoteService {
 		if (endIndex > startIndex) {
 			lines.splice(startIndex, endIndex - startIndex);
 		}
+	}
+
+	private async ensureFolderExists(folderPath: string): Promise<void> {
+		const parts = folderPath.split("/");
+		let currentPath = "";
+		for (const part of parts) {
+			currentPath = currentPath ? `${currentPath}/${part}` : part;
+			if (!this.app.vault.getAbstractFileByPath(currentPath)) {
+				await this.app.vault.createFolder(currentPath);
+			}
+		}
+	}
+
+	private async updateTaskTime(
+		sourcePath: string,
+		lineNumber: number,
+		newTime: {
+			newStartDate: string;
+			newStartTime?: string;
+			newEndDate?: string;
+			newEndTime?: string;
+			allDay: boolean;
+		},
+		configType: TaskConfig["type"],
+	): Promise<void> {
+		const file = this.app.vault.getAbstractFileByPath(sourcePath);
+		if (!(file instanceof TFile)) throw new Error("File not found");
+
+		const content = await this.app.vault.read(file);
+		const lines = content.split("\n");
+		const range = this.getTaskBlockRange(lines, lineNumber);
+		const taskBlock = lines.slice(range.start, range.end).join("\n");
+		const updatedBlock = this.rewriteTaskDates(taskBlock, newTime, configType);
+		lines.splice(
+			range.start,
+			range.end - range.start,
+			...updatedBlock.split("\n"),
+		);
+		await this.app.vault.modify(file, lines.join("\n"));
+	}
+
+	private rewriteTaskDates(
+		taskBlock: string,
+		newTime: {
+			newStartDate: string;
+			newStartTime?: string;
+			newEndDate?: string;
+			newEndTime?: string;
+			allDay: boolean;
+		},
+		configType: TaskConfig["type"],
+	): string {
+		const parts = taskBlock.split("\n");
+		const firstLine = parts[0] ?? "";
+		const rest = parts.slice(1).join("\n");
+
+		let updated = firstLine;
+		if (newTime.allDay) {
+			updated =
+				configType === "file"
+					? firstLine.replace(/\s*\{[^}]+\}/, ` {${newTime.newStartDate}}`)
+					: firstLine.replace(/\s*\{[^}]+\}/, "");
+			if (!/\{[^}]+\}/.test(firstLine) && configType === "file") {
+				updated = `${firstLine} {${newTime.newStartDate}}`;
+			}
+		} else {
+			const newTimeBlock = `{${newTime.newStartDate} ${newTime.newStartTime} - ${newTime.newEndDate ?? newTime.newStartDate} ${newTime.newEndTime}}`;
+			if (/\{[^}]+\}/.test(firstLine)) {
+				updated = firstLine.replace(/\{[^}]+\}/, newTimeBlock);
+			} else {
+				const match = firstLine.match(/^(\s*-\s+\[[^\]]+\]\s+[^{]+)/);
+				if (match?.[1]) {
+					updated = `${match[1].trimEnd()} ${newTimeBlock}`;
+				}
+			}
+		}
+
+		return rest ? `${updated}\n${rest}` : updated;
 	}
 }

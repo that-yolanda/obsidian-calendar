@@ -54,6 +54,18 @@ export default class ObCalendarPlugin extends Plugin {
 				}
 			}),
 		);
+
+		this.registerEvent(
+			this.app.workspace.on("css-change", () => {
+				const leaves = this.app.workspace.getLeavesOfType(CALENDAR_VIEW_TYPE);
+				for (const leaf of leaves) {
+					const view = leaf.view;
+					if (view instanceof CalendarView) {
+						view.refreshCalendar();
+					}
+				}
+			}),
+		);
 	}
 
 	onunload(): void {

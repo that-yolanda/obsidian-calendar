@@ -1,9 +1,13 @@
 import { type App, Component, Modal, Setting } from "obsidian";
-import type { TaskFormData, TaskHeadingConfig, TaskStatus } from "../types";
+import {
+	TASK_STATUS_OPTIONS,
+	type TaskConfig,
+	type TaskFormData,
+	type TaskStatus,
+} from "../types";
 import {
 	addMarkdownEditorSetting,
 	addTaskStatusSetting,
-	TASK_STATUS_OPTIONS,
 } from "./taskFormComponents";
 
 export interface TaskFormSeedData {
@@ -18,7 +22,7 @@ interface TaskFormInitialData extends TaskFormSeedData {
 	title: string;
 	details: string;
 	status: TaskStatus;
-	headingIndex: number;
+	configIndex: number;
 }
 
 export interface TaskDetailData extends TaskFormInitialData {
@@ -28,13 +32,13 @@ export interface TaskDetailData extends TaskFormInitialData {
 
 type CreateTaskFormOptions = {
 	mode: "create";
-	taskHeadings: TaskHeadingConfig[];
+	taskConfigs: TaskConfig[];
 	initialData: TaskFormSeedData;
 };
 
 type EditTaskFormOptions = {
 	mode: "edit";
-	taskHeadings: TaskHeadingConfig[];
+	taskConfigs: TaskConfig[];
 	initialData: TaskDetailData;
 	onSave: (
 		sourcePath: string,
@@ -79,7 +83,7 @@ export class TaskFormModal extends Modal {
 			contentEl,
 			this.app,
 			this.markdownPreviewComponent,
-			this.options.taskHeadings,
+			this.options.taskConfigs,
 			getInitialData(this.options),
 		);
 
@@ -177,7 +181,7 @@ function getInitialData(options: TaskFormModalOptions): TaskFormInitialData {
 		endDate: options.initialData.endDate,
 		endTime: options.initialData.endTime,
 		status: "initial",
-		headingIndex: 0,
+		configIndex: 0,
 	};
 }
 
@@ -185,7 +189,7 @@ function buildTaskForm(
 	container: HTMLElement,
 	app: App,
 	owner: Component,
-	taskHeadings: TaskHeadingConfig[],
+	taskConfigs: TaskConfig[],
 	initialData: TaskFormInitialData,
 ): TaskFormElements {
 	const form = container.createEl("form", {
@@ -193,15 +197,15 @@ function buildTaskForm(
 	});
 	form.addEventListener("submit", (e) => e.preventDefault());
 
-	let headingSelect!: HTMLSelectElement;
-	const headingSetting = new Setting(form).setName("任务分类");
-	headingSetting.settingEl.addClass("ob-calendar-dropdown-setting");
-	headingSetting.addDropdown((dropdown) => {
-		headingSelect = dropdown.selectEl;
-		for (const [index, heading] of taskHeadings.entries()) {
-			dropdown.addOption(String(index), heading.heading || `分类 ${index + 1}`);
+	let configSelect!: HTMLSelectElement;
+	const configSetting = new Setting(form).setName("任务分类");
+	configSetting.settingEl.addClass("ob-calendar-dropdown-setting");
+	configSetting.addDropdown((dropdown) => {
+		configSelect = dropdown.selectEl;
+		for (const [index, config] of taskConfigs.entries()) {
+			dropdown.addOption(String(index), formatTaskConfigLabel(config, index));
 		}
-		dropdown.setValue(String(initialData.headingIndex));
+		dropdown.setValue(String(initialData.configIndex));
 	});
 
 	let nameInput!: HTMLInputElement;
@@ -271,9 +275,19 @@ function buildTaskForm(
 			endDate: endTimeRow.dateInput.value,
 			endTime: endTimeRow.timeInput.value,
 			status: statusField.getValue(),
-			headingIndex: Number(headingSelect.value),
+			configIndex: Number(configSelect.value),
 		}),
 	};
+}
+
+function formatTaskConfigLabel(config: TaskConfig, index: number): string {
+	const headingLabel = config.heading || `分类 ${index + 1}`;
+	if (config.type === "daily-note") {
+		return `日记任务 / ${headingLabel}`;
+	}
+
+	const fileLabel = config.targetFile || "未选择文件";
+	return `项目任务 / ${fileLabel} / ${headingLabel}`;
 }
 
 function addDateTimeRow(

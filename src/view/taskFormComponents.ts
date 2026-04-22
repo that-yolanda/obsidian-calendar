@@ -1,16 +1,5 @@
 import { type App, type Component, MarkdownRenderer, Setting } from "obsidian";
-import type { TaskStatus } from "../types";
-
-export const TASK_STATUS_OPTIONS: {
-	value: TaskStatus;
-	label: string;
-	taskChar: string;
-}[] = [
-	{ value: "initial", label: "未开始", taskChar: " " },
-	{ value: "incomplete", label: "未完成", taskChar: "/" },
-	{ value: "completed", label: "完成", taskChar: "✓" },
-	{ value: "cancelled", label: "取消", taskChar: "x" },
-];
+import { TASK_STATUS_OPTIONS, type TaskStatus } from "../types";
 
 export function addMarkdownEditorSetting(
 	container: HTMLElement,
@@ -58,7 +47,7 @@ export function addMarkdownEditorSetting(
 		}
 
 		previewEl.addClass("is-empty");
-		previewContent.setText("点击编辑...");
+
 	};
 
 	previewEl.addEventListener("click", () => {
@@ -110,7 +99,7 @@ export function addTaskStatusSetting(
 	for (const option of TASK_STATUS_OPTIONS) {
 		const isChecked = option.value !== "initial";
 		const itemEl = listEl.createEl("li", {
-			cls: `task-list-item ob-calendar-status-option${isChecked ? " is-checked" : ""}`,
+			cls: `ob-calendar-status-option${isChecked ? " is-checked" : ""}`,
 		});
 		itemEl.setAttribute("data-task", option.taskChar);
 		itemEl.setAttribute("role", "radio");

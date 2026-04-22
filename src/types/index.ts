@@ -1,10 +1,33 @@
 export const CALENDAR_VIEW_TYPE = "ob-calendar-view";
 
 export type TaskStatus = "initial" | "completed" | "incomplete" | "cancelled";
+export type TaskConfigType = "daily-note" | "file";
+export const TASK_STATUS_OPTIONS: Array<{
+	value: TaskStatus;
+	label: string;
+	taskChar: string;
+}> = [
+	{ value: "initial", label: "未开始", taskChar: " " },
+	{ value: "incomplete", label: "未完成", taskChar: "/" },
+	{ value: "completed", label: "完成", taskChar: "✓" },
+	{ value: "cancelled", label: "取消", taskChar: "x" },
+];
 
-export interface TaskHeadingConfig {
+export const TASK_STATUS_CHAR_MAP = Object.fromEntries(
+	TASK_STATUS_OPTIONS.map((option) => [option.value, option.taskChar]),
+) as Record<TaskStatus, string>;
+
+export const TASK_CHAR_STATUS_MAP = Object.fromEntries(
+	TASK_STATUS_OPTIONS.map((option) => [option.taskChar, option.value]),
+) as Record<string, TaskStatus>;
+
+export interface TaskConfig {
+	type: TaskConfigType;
 	heading: string;
-	color: string;
+	manualHeading: boolean;
+	targetFile: string;
+	lightColor: string;
+	darkColor: string;
 }
 
 export interface CalendarEvent {
@@ -17,23 +40,25 @@ export interface CalendarEvent {
 	allDay: boolean;
 	completed: boolean;
 	status: TaskStatus;
+	statusChar: string;
 	details?: string;
 	sourcePath: string;
 	lineNumber: number;
-	headingIndex: number;
+	configIndex: number;
 	tags?: string[];
 }
 
 export interface TaskInfo {
 	text: string;
 	status: TaskStatus;
+	statusChar: string;
 	date: string;
 	endDate?: string;
 	startTime?: string;
 	endTime?: string;
 	details?: string;
 	lineNumber: number;
-	headingIndex: number;
+	configIndex: number;
 }
 
 export interface TaskFormData {
@@ -45,13 +70,13 @@ export interface TaskFormData {
 	endDate: string;
 	endTime: string;
 	status: TaskStatus;
-	headingIndex: number;
+	configIndex: number;
 }
 
 export interface ObCalendarSettings {
 	dailyNoteFolder: string;
 	dailyNoteFormat: string;
-	taskHeadings: TaskHeadingConfig[];
+	taskConfigs: TaskConfig[];
 	initialView: string;
 	firstDay: number;
 	timeFormat24h: boolean;
@@ -60,7 +85,7 @@ export interface ObCalendarSettings {
 export const DEFAULT_SETTINGS: ObCalendarSettings = {
 	dailyNoteFolder: "",
 	dailyNoteFormat: "YYYY-MM-DD",
-	taskHeadings: [],
+	taskConfigs: [],
 	initialView: "timeGridWeek",
 	firstDay: 1,
 	timeFormat24h: false,
