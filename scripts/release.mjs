@@ -98,7 +98,12 @@ run("git", [
 	"manifest.json",
 	"versions.json",
 ]);
-run("git", ["commit", "-m", releaseTitle]);
+const stagedChanges = runAndCapture("git", ["diff", "--cached", "--name-only"]);
+if (stagedChanges) {
+	run("git", ["commit", "-m", releaseTitle]);
+} else {
+	console.log("> skip git commit (no staged changes)");
+}
 run("git", ["tag", version]);
 run("git", ["push", "origin", "HEAD"]);
 run("git", ["push", "origin", version]);
