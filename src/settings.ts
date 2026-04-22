@@ -1,4 +1,5 @@
 import {
+	AbstractInputSuggest,
 	type App,
 	normalizePath,
 	PluginSettingTab,
@@ -10,6 +11,36 @@ import type ObCalendarPlugin from "./main";
 export { DEFAULT_SETTINGS, type ObCalendarSettings } from "./types";
 
 import type { TaskConfig, TaskConfigType } from "./types";
+
+class MarkdownFileSuggest extends AbstractInputSuggest<string> {
+	private readonly filePaths: string[];
+
+	constructor(app: App, inputEl: HTMLInputElement, filePaths: string[]) {
+		super(app, inputEl);
+		this.filePaths = filePaths;
+		this.limit = 50;
+	}
+
+	protected getSuggestions(query: string): string[] {
+		const normalizedQuery = query.trim().toLowerCase();
+		if (!normalizedQuery) {
+			return this.filePaths.slice(0, this.limit);
+		}
+
+		return this.filePaths
+			.filter((path) => path.toLowerCase().includes(normalizedQuery))
+			.slice(0, this.limit);
+	}
+
+	renderSuggestion(value: string, el: HTMLElement): void {
+		el.setText(value);
+	}
+
+	selectSuggestion(value: string): void {
+		this.setValue(value);
+		this.close();
+	}
+}
 
 export class CalendarSettingTab extends PluginSettingTab {
 	app: App;
@@ -85,20 +116,11 @@ export class CalendarSettingTab extends PluginSettingTab {
 		return headings;
 	}
 
-	private getMarkdownFileOptions(): Record<string, string> {
-		const files = this.app.vault
+	private getMarkdownFilePaths(): string[] {
+		return this.app.vault
 			.getMarkdownFiles()
 			.map((file) => file.path)
 			.sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
-		const options: Record<string, string> = {
-			"": "选择写入文件",
-		};
-
-		for (const file of files) {
-			options[file] = file;
-		}
-
-		return options;
 	}
 
 	private createDefaultTaskConfig(): TaskConfig {
@@ -115,7 +137,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 		new Setting(containerEl).setHeading().setName("任务配置");
 
 		const templateHeadings = await this.getTemplateHeadings();
-		const markdownFileOptions = this.getMarkdownFileOptions();
+		const markdownFilePaths = this.getMarkdownFilePaths();
 		const { taskConfigs } = this.plugin.settings;
 
 		for (let i = 0; i < taskConfigs.length; i++) {
@@ -172,23 +194,51 @@ export class CalendarSettingTab extends PluginSettingTab {
 			} else {
 				new Setting(itemContainer)
 					.setName("目标文件")
-					.addDropdown((dropdown) => {
-						dropdown.addOptions(markdownFileOptions);
-						if (
-							config.targetFile &&
-							!(config.targetFile in markdownFileOptions)
-						) {
-							dropdown.addOption(config.targetFile, config.targetFile);
-						}
-						dropdown.setValue(config.targetFile || "");
-						dropdown.onChange(async (value: string) => {
+					.addSearch((search) => {
+						const updateTargetFile = async (value: string) => {
 							const item = this.plugin.settings.taskConfigs[index];
 							if (!item) return;
 							this.manualHeadingDrafts.delete(index);
-							item.targetFile = value;
+							item.targetFile = value.trim();
 							item.heading = "";
 							await this.plugin.saveSettings();
 							await this.display();
+						};
+
+						search
+							.setPlaceholder("搜索并选择文件")
+							.setValue(config.targetFile || "");
+
+						const suggest = new MarkdownFileSuggest(
+							this.app,
+							search.inputEl,
+							markdownFilePaths,
+						);
+						suggest.onSelect((value) => {
+							void updateTargetFile(value);
+						});
+
+						search.onChange((value) => {
+							if (!value.trim()) {
+								void updateTargetFile("");
+							}
+						});
+
+						search.inputEl.addEventListener("blur", () => {
+							const value = search.getValue().trim();
+							if (!value || !markdownFilePaths.includes(value)) {
+								search.setValue(config.targetFile || "");
+								return;
+							}
+							if (value !== config.targetFile) {
+								void updateTargetFile(value);
+							}
+						});
+
+						search.inputEl.addEventListener("keydown", (event) => {
+							if (event.key !== "Enter") return;
+							event.preventDefault();
+							search.inputEl.blur();
 						});
 					})
 					.settingEl.addClass("ob-calendar-task-config-item");

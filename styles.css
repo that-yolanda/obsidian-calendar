@@ -376,31 +376,33 @@
 .ob-calendar-settings
 	.ob-calendar-task-config-item
 	.setting-item-control
-	> input[type="text"] {
+	> input[type="text"],
+.ob-calendar-settings
+	.ob-calendar-task-config-item
+	.setting-item-control
+	> .search-input-container,
+.ob-calendar-settings
+	.ob-calendar-task-config-item
+	.setting-item-control
+	> input[type="search"] {
 	width: 100%;
 }
 
-.ob-calendar-settings .ob-calendar-task-config-item input[type="color"] {
-	width: 28px;
-	height: 28px;
+.ob-calendar-settings
+	.ob-calendar-task-config-item
+	.setting-item-control
+	> input[type="color"] {
+	width: auto;
+	min-width: auto;
+	max-width: none;
+	height: auto;
+	min-height: auto;
+	max-height: none;
 	padding: 0;
 	flex: 0 0 auto;
-	border: none;
-	border-radius: 50%;
-	background: transparent;
-	overflow: hidden;
-	cursor: pointer;
-}
-
-.ob-calendar-settings
-	.ob-calendar-task-config-item
-	input[type="color"]::-webkit-color-swatch-wrapper {
-	padding: 0;
-}
-
-.ob-calendar-settings
-	.ob-calendar-task-config-item
-	input[type="color"]::-webkit-color-swatch {
-	border: none;
-	border-radius: 50%;
+	border: initial;
+	border-radius: initial;
+	background: initial;
+	appearance: auto;
+	-webkit-appearance: auto;
 }
