@@ -4,7 +4,20 @@
 	"description": "Obsidian Calendar",
 	"main": "main.js",
 	"type": "module",
+	"author": "Yolanda",
 	"packageManager": "pnpm@10.32.1",
+	"homepage": "https://github.com/that-yolanda/obsidian-calendar",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/that-yolanda/obsidian-calendar.git"
+	},
+	"bugs": {
+		"url": "https://github.com/that-yolanda/obsidian-calendar/issues"
+	},
+	"funding": {
+		"type": "ko-fi",
+		"url": "https://ko-fi.com/thatyolanda"
+	},
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
@@ -14,7 +27,7 @@
 		"format": "biome format --write src/"
 	},
 	"keywords": [],
-	"license": "0-BSD",
+	"license": "MIT",
 	"devDependencies": {
 		"@biomejs/biome": "^2.0.0",
 		"@types/node": "^16.11.6",
