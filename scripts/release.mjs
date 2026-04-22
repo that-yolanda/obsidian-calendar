@@ -97,7 +97,6 @@ run("git", [
 	"package.json",
 	"manifest.json",
 	"versions.json",
-	"main.js",
 ]);
 run("git", ["commit", "-m", releaseTitle]);
 run("git", ["tag", version]);
