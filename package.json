@@ -1,6 +1,6 @@
 {
-	"name": "ob-calendar",
-	"version": "1.0.0",
+	"name": "obsidian-calendar",
+	"version": "0.0.1",
 	"description": "Obsidian Calendar",
 	"main": "main.js",
 	"type": "module",
@@ -21,7 +21,7 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"version": "node version-bump.mjs && git add manifest.json versions.json",
+		"release": "node scripts/release.mjs",
 		"lint": "biome check src/",
 		"lint:fix": "biome check --write src/",
 		"format": "biome format --write src/"
