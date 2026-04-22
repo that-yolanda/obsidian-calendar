@@ -46,6 +46,7 @@ type EditTaskFormOptions = {
 		formData: TaskFormData,
 	) => Promise<void>;
 	onOpenNote: (sourcePath: string, lineNumber: number) => void | Promise<void>;
+	onDelete: (sourcePath: string, lineNumber: number) => Promise<void>;
 };
 
 type TaskFormModalOptions = CreateTaskFormOptions | EditTaskFormOptions;
@@ -97,6 +98,16 @@ export class TaskFormModal extends Modal {
 				.createEl("button", { text: "打开文件", type: "button" })
 				.addEventListener("click", () => {
 					void editOptions.onOpenNote(
+						editOptions.initialData.sourcePath,
+						editOptions.initialData.lineNumber,
+					);
+					this.close();
+				});
+
+			buttonContainer
+				.createEl("button", { text: "删除", type: "button" })
+				.addEventListener("click", () => {
+					void editOptions.onDelete(
 						editOptions.initialData.sourcePath,
 						editOptions.initialData.lineNumber,
 					);

@@ -26,7 +26,6 @@ function renderEventContent(arg: EventContentArg): { domNodes: HTMLElement[] } {
 		TASK_STATUS_CHAR_MAP[status] ??
 		" ";
 
-
 	const itemEl = document.createElement("div");
 	itemEl.className = "ob-calendar-task-row";
 	itemEl.setAttribute("data-task", statusChar);

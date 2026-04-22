@@ -109,6 +109,9 @@ export class CalendarView extends ItemView {
 			onOpenNote: async (sourcePath, lineNumber) => {
 				await openFileAtLine(this.app, sourcePath, lineNumber);
 			},
+			onDelete: async (sourcePath, lineNumber) => {
+				await this.plugin.dailyNoteService.deleteTask(sourcePath, lineNumber);
+			},
 		}).open();
 	}
 

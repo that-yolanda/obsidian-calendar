@@ -98,6 +98,10 @@ export class DailyNoteService {
 		await this.appendRawTaskToConfig(config, formData.startDate, taskBlock);
 	}
 
+	async deleteTask(sourcePath: string, lineNumber: number): Promise<void> {
+		await this.removeTaskBlock(sourcePath, lineNumber);
+	}
+
 	async updateTask(
 		sourcePath: string,
 		lineNumber: number,
