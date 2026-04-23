@@ -10,6 +10,7 @@ import { SVGRenderer } from "echarts/renderers";
 import { t } from "../i18n";
 import type { PeriodSummary, StatsChartColors, StatsPeriod } from "../types";
 import { TASK_STATUS_OPTIONS } from "../types";
+import { formatMinutes } from "../utils/time";
 
 echarts.use([
 	PieChart,
@@ -129,10 +130,7 @@ export function buildBarOption(
 					name: string;
 					value: number;
 				};
-				const h = Math.floor(data.value / 60);
-				const m = data.value % 60;
-				const time = h > 0 ? `${h}h ${m}m` : `${m}m`;
-				return `${data.name}<br/>${t("stats.timeSpent")}: ${time}`;
+				return `${data.name}<br/>${t("stats.timeSpent")}: ${formatMinutes(data.value)}`;
 			},
 		},
 		grid: {
@@ -155,9 +153,7 @@ export function buildBarOption(
 			axisLabel: {
 				fontSize: 11,
 				formatter(val: number): string {
-					const h = Math.floor(val / 60);
-					const m = val % 60;
-					return h > 0 ? `${h}h` : `${m}m`;
+					return formatMinutes(val, true);
 				},
 			},
 		},

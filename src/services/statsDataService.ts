@@ -1,5 +1,6 @@
 import type { CalendarEvent, PeriodSummary, TaskStatusCount } from "../types";
 import { TASK_STATUS_OPTIONS } from "../types";
+import { formatDate, parseTimeToMinutes } from "../utils/time";
 import type { DailyNoteService } from "./dailyNoteService";
 export interface StatsPeriodRange {
 	start: string;
@@ -58,8 +59,8 @@ export class StatsDataService {
 		start.setDate(start.getDate() - days);
 		end.setDate(end.getDate() - days);
 		return {
-			start: this.formatDate(start),
-			end: this.formatDate(end),
+			start: formatDate(start),
+			end: formatDate(end),
 		};
 	}
 
@@ -94,7 +95,7 @@ export class StatsDataService {
 		const current = new Date(`${start}T00:00:00`);
 		const last = new Date(`${end}T00:00:00`);
 		while (current <= last) {
-			map.set(this.formatDate(current), 0);
+			map.set(formatDate(current), 0);
 			current.setDate(current.getDate() + 1);
 		}
 
@@ -117,20 +118,7 @@ export class StatsDataService {
 	private computeEventDuration(event: CalendarEvent): number {
 		if (!event.startTime || !event.endTime) return 0;
 		return (
-			this.parseTimeToMinutes(event.endTime) -
-			this.parseTimeToMinutes(event.startTime)
+			parseTimeToMinutes(event.endTime) - parseTimeToMinutes(event.startTime)
 		);
-	}
-
-	private parseTimeToMinutes(time: string): number {
-		const parts = time.split(":");
-		return (Number(parts[0]) ?? 0) * 60 + (Number(parts[1]) ?? 0);
-	}
-
-	private formatDate(d: Date): string {
-		const year = d.getFullYear();
-		const month = String(d.getMonth() + 1).padStart(2, "0");
-		const day = String(d.getDate()).padStart(2, "0");
-		return `${year}-${month}-${day}`;
 	}
 }

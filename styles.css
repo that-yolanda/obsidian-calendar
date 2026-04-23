@@ -9,6 +9,7 @@
 
 .is-phone .ob-calendar-wrapper {
 	padding: var(--size-4-2);
+	margin-bottom: var(--size-4-18);
 }
 
 .is-phone .fc .fc-toolbar-title {
@@ -412,6 +413,7 @@
 	gap: var(--size-4-4);
 }
 
+
 .ob-calendar-stats-cards {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -432,6 +434,13 @@
 	min-width: 0;
 	box-sizing: border-box;
 	margin-bottom: 0;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+}
+.ob-calendar-stat-card .ob-calendar-stat-value {
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
 }
 
 .ob-calendar-stat-card .is-positive {

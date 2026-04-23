@@ -2,6 +2,7 @@ import type { EChartsType } from "echarts/core";
 import { Setting } from "obsidian";
 import { t } from "../i18n";
 import type { PeriodSummary } from "../types";
+import { formatMinutes } from "../utils/time";
 
 export interface StatsCardElements {
 	valueEl: HTMLElement;
@@ -67,7 +68,7 @@ export function renderStatsLayout(
 function renderCard(container: HTMLElement, label: string): StatsCardElements {
 	const s = new Setting(container).setName(label);
 	s.settingEl.addClass("ob-calendar-stat-card");
-	const valueEl = s.controlEl.createDiv({
+	const valueEl = s.controlEl.createSpan({
 		cls: "ob-calendar-stat-value",
 		text: "--",
 	});
@@ -143,12 +144,4 @@ function updateChange(el: HTMLElement, text: string, diff: number): void {
 	el.textContent = text;
 	el.toggleClass("is-positive", diff > 0);
 	el.toggleClass("is-negative", diff < 0);
-}
-
-function formatMinutes(m: number): string {
-	const abs = Math.abs(m);
-	const h = Math.floor(abs / 60);
-	const min = abs % 60;
-	const prefix = m < 0 ? "-" : "";
-	return `${prefix}${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 }
