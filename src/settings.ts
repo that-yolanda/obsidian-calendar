@@ -154,8 +154,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 			);
 		}
 
-		const group = new SettingGroup(containerEl)
-			.setHeading("任务配置")
+		const group = new SettingGroup(containerEl).setHeading("任务配置");
 
 		for (let i = 0; i < taskConfigs.length; i++) {
 			const index = i;

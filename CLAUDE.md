@@ -17,8 +17,9 @@ No test framework is configured.
 ## Code Quality
 
 - **Biome** is configured for linting and formatting (`biome.json`)
-- After any code change, run `pnpm check` to ensure no lint or formatting issues remain before committing — this catches problems early and keeps the codebase consistent
+- After any code change, run `pnpm lint:fix` to auto-fix issues, then `pnpm lint` to verify — this catches problems early and keeps the codebase consistent
 - Fix all errors and warnings reported by Biome before considering a task complete
+- Before running `pnpm release <version>`, always run `pnpm lint:fix && pnpm lint` first — the release script will also run lint as a gate, but fixing issues beforehand avoids a failed release that already bumped version numbers
 
 ## Code Commit Convention
 
