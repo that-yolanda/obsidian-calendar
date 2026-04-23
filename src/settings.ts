@@ -6,6 +6,7 @@ import {
 	SettingGroup,
 	TFile,
 } from "obsidian";
+import { t } from "./i18n";
 import type ObCalendarPlugin from "./main";
 
 export { DEFAULT_SETTINGS, type ObCalendarSettings } from "./types";
@@ -159,7 +160,9 @@ export class CalendarSettingTab extends PluginSettingTab {
 			);
 		}
 
-		const group = new SettingGroup(containerEl).setHeading("任务配置");
+		const group = new SettingGroup(containerEl).setHeading(
+			t("settings.taskConfig"),
+		);
 
 		for (let i = 0; i < taskConfigs.length; i++) {
 			const index = i;
@@ -168,7 +171,9 @@ export class CalendarSettingTab extends PluginSettingTab {
 
 			if (config.heading.trim()) {
 				const typeLabel =
-					config.type === "daily-note" ? "日记任务" : "项目任务";
+					config.type === "daily-note"
+						? t("taskType.dailyNote")
+						: t("taskType.project");
 				group.addSetting((setting) => {
 					setting
 						.setName(config.heading)
@@ -194,7 +199,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 						.addButton((btn) => {
 							btn
 								.setIcon("trash")
-								.setTooltip("删除")
+								.setTooltip(t("settings.delete"))
 								.onClick(async () => {
 									this.plugin.settings.taskConfigs.splice(index, 1);
 									await this.plugin.saveSettings();
@@ -209,7 +214,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 			const availableHeadings = headingDataMap.get(index) ?? [];
 			group.addSetting((setting) => {
 				setting.settingEl.addClass("ob-calendar-task");
-				setting.setName("未命名任务");
+				setting.setName(t("settings.unnamedTask"));
 
 				const fieldsEl = setting.settingEl.createDiv({
 					cls: "ob-calendar-task-fields",
@@ -219,10 +224,12 @@ export class CalendarSettingTab extends PluginSettingTab {
 				const typeRow = fieldsEl.createDiv({
 					cls: "ob-calendar-task-field",
 				});
-				typeRow.createEl("label", { text: "任务类型" });
+				typeRow.createEl("label", {
+					text: t("settings.taskType"),
+				});
 				const typeSelect = typeRow.createEl("select");
-				typeSelect.add(new Option("日记任务", "daily-note"));
-				typeSelect.add(new Option("项目任务", "file"));
+				typeSelect.add(new Option(t("taskType.dailyNote"), "daily-note"));
+				typeSelect.add(new Option(t("taskType.project"), "file"));
 				typeSelect.value = config.type;
 
 				typeSelect.addEventListener("change", async () => {
@@ -241,18 +248,20 @@ export class CalendarSettingTab extends PluginSettingTab {
 				const fileRow = fieldsEl.createDiv({
 					cls: "ob-calendar-task-field",
 				});
-				fileRow.createEl("label", { text: "目标文件" });
+				fileRow.createEl("label", {
+					text: t("settings.targetFile"),
+				});
 
 				if (config.type === "daily-note") {
 					const fileInput = document.createElement("input");
 					fileInput.type = "text";
-					fileInput.value = "从日记配置中读取";
+					fileInput.value = t("settings.readFromDailyNotes");
 					fileInput.disabled = true;
 					fileRow.appendChild(fileInput);
 				} else {
 					const fileInput = document.createElement("input");
 					fileInput.type = "search";
-					fileInput.placeholder = "搜索并选择文件";
+					fileInput.placeholder = t("settings.searchFile");
 					fileInput.value = config.targetFile || "";
 					fileRow.appendChild(fileInput);
 
@@ -312,13 +321,15 @@ export class CalendarSettingTab extends PluginSettingTab {
 				const headingRow = fieldsEl.createDiv({
 					cls: "ob-calendar-task-field",
 				});
-				headingRow.createEl("label", { text: "写入标题" });
+				headingRow.createEl("label", {
+					text: t("settings.writeHeading"),
+				});
 				const headingSelect = headingRow.createEl("select");
-				headingSelect.add(new Option("选择标题", ""));
+				headingSelect.add(new Option(t("settings.selectHeading"), ""));
 				for (const heading of headingOptions) {
 					headingSelect.add(new Option(heading, heading));
 				}
-				headingSelect.add(new Option("手动填写", "__manual__"));
+				headingSelect.add(new Option(t("settings.manualInput"), "__manual__"));
 				headingSelect.value = isEditingManualHeading
 					? "__manual__"
 					: currentHeading;
@@ -342,10 +353,12 @@ export class CalendarSettingTab extends PluginSettingTab {
 					const manualRow = fieldsEl.createDiv({
 						cls: "ob-calendar-task-field",
 					});
-					manualRow.createEl("label", { text: "手动标题" });
+					manualRow.createEl("label", {
+						text: t("settings.manualHeading"),
+					});
 					const manualInput = document.createElement("input");
 					manualInput.type = "text";
-					manualInput.placeholder = "输入标题名称";
+					manualInput.placeholder = t("settings.enterHeadingName");
 					manualInput.value = currentHeading;
 					manualRow.appendChild(manualInput);
 
@@ -379,7 +392,9 @@ export class CalendarSettingTab extends PluginSettingTab {
 				const colorRow = fieldsEl.createDiv({
 					cls: "ob-calendar-task-field",
 				});
-				colorRow.createEl("label", { text: "颜色" });
+				colorRow.createEl("label", {
+					text: t("settings.color"),
+				});
 
 				const lightColorInput = document.createElement("input");
 				lightColorInput.type = "color";
@@ -404,7 +419,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 				setting.addButton((btn) => {
 					btn
 						.setIcon("trash")
-						.setTooltip("删除")
+						.setTooltip(t("settings.delete"))
 						.onClick(async () => {
 							this.manualHeadingDrafts.delete(index);
 							this.plugin.settings.taskConfigs.splice(index, 1);
@@ -419,7 +434,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 			setting.addButton((btn) => {
 				btn
 					.setIcon("plus")
-					.setButtonText("添加任务")
+					.setButtonText(t("settings.addTask"))
 					.onClick(async () => {
 						this.manualHeadingDrafts.clear();
 						this.plugin.settings.taskConfigs.push(
@@ -432,18 +447,20 @@ export class CalendarSettingTab extends PluginSettingTab {
 	}
 
 	private renderCalendarPreferences(containerEl: HTMLElement): void {
-		const group = new SettingGroup(containerEl).setHeading("日历偏好");
+		const group = new SettingGroup(containerEl).setHeading(
+			t("settings.calendarPrefs"),
+		);
 		group.addSetting((setting) => {
 			setting
-				.setName("初始视图")
-				.setDesc("打开日历时显示的视图")
+				.setName(t("settings.initialView"))
+				.setDesc(t("settings.initialViewDesc"))
 				.addDropdown((dropdown) =>
 					dropdown
 						.addOptions({
-							dayGridMonth: "月视图",
-							timeGridWeek: "周视图",
-							timeGridDay: "日视图",
-							listWeek: "列表视图",
+							dayGridMonth: t("settings.monthView"),
+							timeGridWeek: t("settings.weekView"),
+							timeGridDay: t("settings.dayView"),
+							listWeek: t("settings.listView"),
 						})
 						.setValue(this.plugin.settings.initialView)
 						.onChange(async (value: string) => {
@@ -455,18 +472,18 @@ export class CalendarSettingTab extends PluginSettingTab {
 
 		group.addSetting((setting) => {
 			setting
-				.setName("周起始日")
-				.setDesc("设置每周的第一天")
+				.setName(t("settings.firstDay"))
+				.setDesc(t("settings.firstDayDesc"))
 				.addDropdown((dropdown) =>
 					dropdown
 						.addOptions({
-							"0": "周日",
-							"1": "周一",
-							"2": "周二",
-							"3": "周三",
-							"4": "周四",
-							"5": "周五",
-							"6": "周六",
+							"0": t("settings.sunday"),
+							"1": t("settings.monday"),
+							"2": t("settings.tuesday"),
+							"3": t("settings.wednesday"),
+							"4": t("settings.thursday"),
+							"5": t("settings.friday"),
+							"6": t("settings.saturday"),
 						})
 						.setValue(String(this.plugin.settings.firstDay))
 						.onChange(async (value: string) => {
@@ -478,8 +495,8 @@ export class CalendarSettingTab extends PluginSettingTab {
 
 		group.addSetting((setting) => {
 			setting
-				.setName("24小时制")
-				.setDesc("使用24小时制显示时间")
+				.setName(t("settings.timeFormat24h"))
+				.setDesc(t("settings.timeFormat24hDesc"))
 				.addToggle((toggle) =>
 					toggle
 						.setValue(this.plugin.settings.timeFormat24h)
@@ -491,16 +508,18 @@ export class CalendarSettingTab extends PluginSettingTab {
 		});
 	}
 	private renderStatsChartColors(containerEl: HTMLElement): void {
-		const group = new SettingGroup(containerEl).setHeading("图表配色");
+		const group = new SettingGroup(containerEl).setHeading(
+			t("settings.chartColors"),
+		);
 		group.addSetting((setting) => {
-			setting.setDesc("重置后使用内置默认颜色");
+			setting.setDesc(t("settings.resetDesc"));
 		});
 
 		const colors = this.plugin.settings.statsChartColors;
 
 		for (const status of TASK_STATUS_OPTIONS) {
 			group.addSetting((s) => {
-				s.setName(status.label);
+				s.setName(t(`status.${status.value}` as Parameters<typeof t>[0]));
 				s.addColorPicker((picker) => {
 					picker.setValue(colors[status.value]);
 					picker.onChange(async (value: string) => {
@@ -511,7 +530,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 				s.addExtraButton((btn) => {
 					btn
 						.setIcon("reset")
-						.setTooltip("重置为默认")
+						.setTooltip(t("settings.resetToDefault"))
 						.onClick(async () => {
 							this.plugin.settings.statsChartColors[status.value] =
 								status.chartColor;
@@ -523,7 +542,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 		}
 
 		group.addSetting((s) => {
-			s.setName("柱状图");
+			s.setName(t("settings.barChart"));
 			s.addColorPicker((picker) => {
 				picker.setValue(colors.bar);
 				picker.onChange(async (value: string) => {
@@ -534,7 +553,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 			s.addExtraButton((btn) => {
 				btn
 					.setIcon("reset")
-					.setTooltip("重置为默认")
+					.setTooltip(t("settings.resetToDefault"))
 					.onClick(async () => {
 						this.plugin.settings.statsChartColors.bar = DEFAULT_STATS_BAR_COLOR;
 						await this.plugin.saveSettings();

@@ -2,6 +2,7 @@ import type { Calendar, DatesSetArg, EventDropArg } from "@fullcalendar/core";
 import type { EventResizeDoneArg } from "@fullcalendar/interaction";
 import * as echarts from "echarts/core";
 import { ItemView, type WorkspaceLeaf } from "obsidian";
+import { t } from "../i18n";
 import type ObCalendarPlugin from "../main";
 import { mapEventsToInputs } from "../services/eventMapper";
 import {
@@ -51,7 +52,7 @@ export class CalendarView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "日历";
+		return t("view.calendar");
 	}
 
 	getIcon(): string {
@@ -222,13 +223,13 @@ export class CalendarView extends ItemView {
 			) {
 				this.calendar.changeView("timeGridWeek");
 			}
-			setStatsToggleText(container, "日历");
+			setStatsToggleText(container, t("view.calendar"));
 			setStatsHeaderMode(container, true);
 			setCalendarViewVisible(container, false);
 			await this.showStats(container);
 		} else {
 			this.statsRefreshToken++;
-			setStatsToggleText(container, "报表");
+			setStatsToggleText(container, t("view.report"));
 			setStatsHeaderMode(container, false);
 			this.destroyStats();
 			setCalendarViewVisible(container, true);
@@ -248,7 +249,9 @@ export class CalendarView extends ItemView {
 		statsContainer.empty();
 
 		this.statsResult = renderStatsLayout(statsContainer, (el: HTMLElement) =>
-			echarts.init(el, undefined, { renderer: "svg" }),
+			echarts.init(el, undefined, {
+				renderer: "svg",
+			}),
 		);
 
 		await this.refreshStats(true);
@@ -278,7 +281,10 @@ export class CalendarView extends ItemView {
 		);
 
 		const container = this.containerEl.children[1] as HTMLElement;
-		setStatsToggleText(container, this.isStatsMode ? "日历" : "报表");
+		setStatsToggleText(
+			container,
+			this.isStatsMode ? t("view.calendar") : t("view.report"),
+		);
 		setStatsHeaderMode(container, this.isStatsMode);
 
 		if (this.isStatsMode) {

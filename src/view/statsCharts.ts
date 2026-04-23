@@ -7,6 +7,7 @@ import {
 } from "echarts/components";
 import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
+import { t } from "../i18n";
 import type { PeriodSummary, StatsChartColors, StatsPeriod } from "../types";
 import { TASK_STATUS_OPTIONS } from "../types";
 
@@ -52,7 +53,7 @@ export function buildDonutOption(
 		darkMode: theme.isDarkMode,
 		title: [
 			{
-				text: "任务数量",
+				text: t("stats.taskCount"),
 				textStyle: {
 					color: theme.textColor,
 					fontSize: theme.titleSize,
@@ -87,8 +88,10 @@ export function buildDonutOption(
 				},
 				data: TASK_STATUS_OPTIONS.map((status) => ({
 					value: dist[status.value],
-					name: status.label,
-					itemStyle: { color: getStatusChartColor(status, colors) },
+					name: t(`status.${status.value}` as Parameters<typeof t>[0]),
+					itemStyle: {
+						color: getStatusChartColor(status, colors),
+					},
 				})),
 			},
 		],
@@ -111,7 +114,7 @@ export function buildBarOption(
 		darkMode: theme.isDarkMode,
 		title: [
 			{
-				text: "任务耗时",
+				text: t("stats.taskDuration"),
 				textStyle: {
 					color: theme.textColor,
 					fontSize: theme.titleSize,
@@ -122,11 +125,14 @@ export function buildBarOption(
 			trigger: "axis",
 			formatter(params: unknown) {
 				const p = Array.isArray(params) ? params[0] : params;
-				const data = p as { name: string; value: number };
+				const data = p as {
+					name: string;
+					value: number;
+				};
 				const h = Math.floor(data.value / 60);
 				const m = data.value % 60;
 				const time = h > 0 ? `${h}h ${m}m` : `${m}m`;
-				return `${data.name}<br/>耗时: ${time}`;
+				return `${data.name}<br/>${t("stats.timeSpent")}: ${time}`;
 			},
 		},
 		grid: {

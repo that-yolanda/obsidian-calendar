@@ -1,4 +1,5 @@
 import { type App, type Component, MarkdownRenderer, Setting } from "obsidian";
+import { t } from "../i18n";
 import { TASK_STATUS_OPTIONS, type TaskStatus } from "../types";
 
 export function addMarkdownEditorSetting(
@@ -73,7 +74,7 @@ export function addTaskStatusSetting(
 	container: HTMLElement,
 	initialValue: TaskStatus,
 ): { getValue: () => TaskStatus } {
-	const setting = new Setting(container).setName("任务状态");
+	const setting = new Setting(container).setName(t("form.taskStatus"));
 	setting.settingEl.addClass("ob-calendar-setting-stretch");
 	setting.controlEl.empty();
 	setting.controlEl.addClass("markdown-rendered");
@@ -82,7 +83,7 @@ export function addTaskStatusSetting(
 		cls: "contains-task-list ob-calendar-status-list",
 	});
 	listEl.setAttribute("role", "radiogroup");
-	listEl.setAttribute("aria-label", "任务状态");
+	listEl.setAttribute("aria-label", t("form.taskStatus"));
 
 	let currentValue = initialValue;
 	const optionEls = new Map<TaskStatus, HTMLElement>();
@@ -114,7 +115,7 @@ export function addTaskStatusSetting(
 
 		itemEl.createSpan({
 			cls: "ob-calendar-status-label",
-			text: option.label,
+			text: t(`status.${option.value}` as Parameters<typeof t>[0]),
 		});
 
 		const selectOption = () => {

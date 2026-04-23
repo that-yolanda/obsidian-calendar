@@ -11,6 +11,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import listPlugin from "@fullcalendar/list";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import { type App, Menu, TFile } from "obsidian";
+import { t } from "../i18n";
 import { mapEventsToInputs } from "../services/eventMapper";
 import {
 	type CalendarEvent,
@@ -92,7 +93,7 @@ export function renderCalendar(
 		aspectRatio: 1,
 		customButtons: {
 			statsToggle: {
-				text: "报表",
+				text: t("view.report"),
 				click: () => callbacks.onStatsToggle(),
 			},
 		},
@@ -102,11 +103,11 @@ export function renderCalendar(
 			right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek statsToggle",
 		},
 		buttonText: {
-			today: "Today",
-			month: "Month",
-			week: "Week",
-			day: "Day",
-			list: "List",
+			today: t("calendar.today"),
+			month: t("calendar.month"),
+			week: t("calendar.week"),
+			day: t("calendar.day"),
+			list: t("calendar.list"),
 		},
 		firstDay: settings.firstDay,
 		locale: "en-us",
@@ -119,11 +120,27 @@ export function renderCalendar(
 		titleFormat: { year: "numeric", month: "2-digit" },
 		eventContent: renderEventContent,
 		eventTimeFormat: settings.timeFormat24h
-			? { hour: "2-digit", minute: "2-digit", hour12: false }
-			: { hour: "numeric", minute: "2-digit", hour12: true },
+			? {
+					hour: "2-digit",
+					minute: "2-digit",
+					hour12: false,
+				}
+			: {
+					hour: "numeric",
+					minute: "2-digit",
+					hour12: true,
+				},
 		slotLabelFormat: settings.timeFormat24h
-			? { hour: "2-digit", minute: "2-digit", hour12: false }
-			: { hour: "numeric", minute: "2-digit", hour12: true },
+			? {
+					hour: "2-digit",
+					minute: "2-digit",
+					hour12: false,
+				}
+			: {
+					hour: "numeric",
+					minute: "2-digit",
+					hour12: true,
+				},
 
 		eventClick(info: EventClickArg) {
 			const { sourcePath, lineNumber, status, details, configIndex } =
@@ -164,7 +181,9 @@ export function renderCalendar(
 				const menu = new Menu();
 				for (const option of TASK_STATUS_OPTIONS) {
 					menu.addItem((item) => {
-						item.setTitle(option.label);
+						item.setTitle(
+							t(`status.${option.value}` as Parameters<typeof t>[0]),
+						);
 						if (status === option.value) {
 							item.setChecked(true);
 						}

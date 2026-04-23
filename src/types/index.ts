@@ -7,25 +7,21 @@ export const DEFAULT_STATS_BAR_COLOR = "#cccccc";
 export const TASK_STATUS_OPTIONS = [
 	{
 		value: "initial",
-		label: "未开始",
 		taskChar: " ",
 		chartColor: "#f9c344",
 	},
 	{
 		value: "incomplete",
-		label: "未完成",
 		taskChar: "/",
 		chartColor: "#b7b523",
 	},
 	{
 		value: "completed",
-		label: "完成",
 		taskChar: "x",
 		chartColor: "#302833",
 	},
 	{
 		value: "cancelled",
-		label: "取消",
 		taskChar: "-",
 		chartColor: "#2d2f48",
 	},

@@ -1,5 +1,6 @@
 import type { EChartsType } from "echarts/core";
 import { Setting } from "obsidian";
+import { t } from "../i18n";
 import type { PeriodSummary } from "../types";
 
 export interface StatsCardElements {
@@ -29,19 +30,23 @@ export function renderStatsLayout(
 		cls: "ob-calendar-stats-cards",
 	});
 	const cards: StatsCards = {
-		total: renderCard(cardsContainer, "总任务"),
-		rate: renderCard(cardsContainer, "完成率"),
-		time: renderCard(cardsContainer, "总时长"),
+		total: renderCard(cardsContainer, t("stats.totalTasks")),
+		rate: renderCard(cardsContainer, t("stats.completionRate")),
+		time: renderCard(cardsContainer, t("stats.totalDuration")),
 	};
 
 	const chartsContainer = container.createDiv({
 		cls: "ob-calendar-stats-charts",
 	});
-	const donutWrap = chartsContainer.createDiv({ cls: "stats-chart-donut" });
+	const donutWrap = chartsContainer.createDiv({
+		cls: "stats-chart-donut",
+	});
 	const donutEl = donutWrap.createDiv();
 	const donutChart = initChart(donutEl);
 
-	const barWrap = chartsContainer.createDiv({ cls: "stats-chart-bar" });
+	const barWrap = chartsContainer.createDiv({
+		cls: "stats-chart-bar",
+	});
 	const barEl = barWrap.createDiv();
 	const barChart = initChart(barEl);
 
@@ -99,7 +104,11 @@ export function updateCards(cards: StatsCards, summary: PeriodSummary): void {
 function updateCardValue(
 	card: StatsCardElements,
 	display: string,
-	change: { current: number; previous: number; isRatio?: boolean },
+	change: {
+		current: number;
+		previous: number;
+		isRatio?: boolean;
+	},
 ): void {
 	card.valueEl.textContent = display;
 	updateChange(card.changeEl, formatChange(change), getChangeValue(change));

@@ -1,4 +1,5 @@
 import { type App, Component, Modal, Setting } from "obsidian";
+import { t } from "../i18n";
 import {
 	TASK_STATUS_OPTIONS,
 	type TaskConfig,
@@ -95,7 +96,10 @@ export class TaskFormModal extends Modal {
 		if (this.options.mode === "edit") {
 			const editOptions = this.options;
 			buttonContainer
-				.createEl("button", { text: "打开文件", type: "button" })
+				.createEl("button", {
+					text: t("form.openFile"),
+					type: "button",
+				})
 				.addEventListener("click", () => {
 					void editOptions.onOpenNote(
 						editOptions.initialData.sourcePath,
@@ -105,7 +109,10 @@ export class TaskFormModal extends Modal {
 				});
 
 			buttonContainer
-				.createEl("button", { text: "删除", type: "button" })
+				.createEl("button", {
+					text: t("form.delete"),
+					type: "button",
+				})
 				.addEventListener("click", () => {
 					void editOptions.onDelete(
 						editOptions.initialData.sourcePath,
@@ -115,20 +122,23 @@ export class TaskFormModal extends Modal {
 				});
 
 			buttonContainer.createEl("button", {
-				text: "保存",
+				text: t("form.save"),
 				cls: "mod-cta",
 				type: "submit",
 			});
 		} else {
 			buttonContainer.createEl("button", {
-				text: "创建",
+				text: t("form.create"),
 				cls: "mod-cta",
 				type: "submit",
 			});
 		}
 
 		buttonContainer
-			.createEl("button", { text: "取消", type: "button" })
+			.createEl("button", {
+				text: t("form.cancel"),
+				type: "button",
+			})
 			.addEventListener("click", () => {
 				if (this.options.mode === "create") {
 					this.resolve?.(null);
@@ -207,7 +217,7 @@ function buildTaskForm(
 	form.addEventListener("submit", (e) => e.preventDefault());
 
 	let configSelect!: HTMLSelectElement;
-	const configSetting = new Setting(form).setName("任务分类");
+	const configSetting = new Setting(form).setName(t("form.taskCategory"));
 	configSetting.settingEl.addClass("ob-calendar-dropdown-setting");
 	configSetting.addDropdown((dropdown) => {
 		configSelect = dropdown.selectEl;
@@ -218,10 +228,10 @@ function buildTaskForm(
 	});
 
 	let titleInput!: HTMLInputElement;
-	new Setting(form).setName("任务名称").addText((text) => {
+	new Setting(form).setName(t("form.taskName")).addText((text) => {
 		titleInput = text.inputEl;
 		titleInput.type = "text";
-		titleInput.placeholder = "请输入任务名称";
+		titleInput.placeholder = t("form.enterTaskName");
 		titleInput.required = true;
 		titleInput.value = initialData.title;
 	});
@@ -229,7 +239,7 @@ function buildTaskForm(
 	let isAllDay = initialData.allDay;
 
 	const allDaySetting = new Setting(form)
-		.setName("全天任务")
+		.setName(t("form.allDayTask"))
 		.addToggle((toggle) => {
 			toggle.setValue(initialData.allDay);
 			toggle.onChange((value) => {
@@ -242,14 +252,14 @@ function buildTaskForm(
 
 	const startTimeRow = addDateTimeRow(
 		form,
-		"开始日期",
+		t("form.startDate"),
 		initialData.startDate,
 		initialData.startTime,
 	);
 
 	const endTimeRow = addDateTimeRow(
 		form,
-		"结束日期",
+		t("form.endDate"),
 		initialData.endDate,
 		initialData.endTime,
 	);
@@ -268,7 +278,7 @@ function buildTaskForm(
 		form,
 		app,
 		owner,
-		"任务详情",
+		t("form.taskDetails"),
 		initialData.details,
 	);
 
@@ -290,13 +300,13 @@ function buildTaskForm(
 }
 
 function formatTaskConfigLabel(config: TaskConfig, index: number): string {
-	const headingLabel = config.heading || `分类 ${index + 1}`;
+	const headingLabel = config.heading || t("form.categoryN", String(index + 1));
 	if (config.type === "daily-note") {
-		return `日记任务 / ${headingLabel}`;
+		return `${t("taskType.dailyNote")} / ${headingLabel}`;
 	}
 
-	const fileLabel = config.targetFile || "未选择文件";
-	return `项目任务 / ${fileLabel} / ${headingLabel}`;
+	const fileLabel = config.targetFile || t("form.noFileSelected");
+	return `${t("taskType.project")} / ${fileLabel} / ${headingLabel}`;
 }
 
 function addDateTimeRow(
@@ -326,5 +336,9 @@ function addDateTimeRow(
 		timeInput.value = timeValue;
 	});
 
-	return { settingEl: setting.settingEl, dateInput, timeInput };
+	return {
+		settingEl: setting.settingEl,
+		dateInput,
+		timeInput,
+	};
 }

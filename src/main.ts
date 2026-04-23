@@ -1,4 +1,5 @@
 import { Plugin, TFile } from "obsidian";
+import { t } from "./i18n";
 import { DailyNoteService } from "./services/dailyNoteService";
 import { CalendarSettingTab } from "./settings";
 import {
@@ -24,13 +25,13 @@ export default class ObCalendarPlugin extends Plugin {
 			return new CalendarView(leaf, this);
 		});
 
-		this.addRibbonIcon("calendar-glyph", "打开日历", async () => {
+		this.addRibbonIcon("calendar-glyph", t("main.openCalendar"), async () => {
 			await this.activateView();
 		});
 
 		this.addCommand({
 			id: "open-calendar",
-			name: "打开日历",
+			name: t("main.openCalendar"),
 			callback: () => this.activateView(),
 		});
 

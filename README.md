@@ -15,6 +15,13 @@
 - `pnpm lint:fix`：修复可自动修复的问题
 - `pnpm format`：格式化 `src/`
 
+### 移动端调试：
+```zsh
+pnpm dev
+obsidian plugin:reload id=obsidian-calendar
+obsidian dev:mobile on
+```
+
 ## Project structure
 
 - `src/main.ts`：插件入口与生命周期
