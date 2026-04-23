@@ -13,6 +13,7 @@ import {
 	type TaskConfig,
 	type TaskFormData,
 	type TaskInfo,
+	type TaskStatus,
 } from "../types";
 
 export class DailyNoteService {
@@ -100,6 +101,25 @@ export class DailyNoteService {
 
 	async deleteTask(sourcePath: string, lineNumber: number): Promise<void> {
 		await this.removeTaskBlock(sourcePath, lineNumber);
+	}
+
+	async changeTaskStatus(
+		sourcePath: string,
+		lineNumber: number,
+		newStatus: TaskStatus,
+	): Promise<void> {
+		const file = this.app.vault.getAbstractFileByPath(sourcePath);
+		if (!(file instanceof TFile)) throw new Error("File not found");
+
+		const content = await this.app.vault.read(file);
+		const lines = content.split("\n");
+		const line = lines[lineNumber];
+		if (!line) throw new Error("Task line not found");
+
+		const newChar = TASK_STATUS_CHAR_MAP[newStatus];
+		lines[lineNumber] = line.replace(/- \[.\]/, `- [${newChar}]`);
+
+		await this.app.vault.modify(file, lines.join("\n"));
 	}
 
 	async updateTask(

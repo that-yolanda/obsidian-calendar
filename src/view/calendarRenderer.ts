@@ -9,12 +9,13 @@ import type { EventResizeDoneArg } from "@fullcalendar/interaction";
 import interactionPlugin from "@fullcalendar/interaction";
 import listPlugin from "@fullcalendar/list";
 import timeGridPlugin from "@fullcalendar/timegrid";
-import { type App, TFile } from "obsidian";
+import { type App, Menu, TFile } from "obsidian";
 import { mapEventsToInputs } from "../services/eventMapper";
 import {
 	type CalendarEvent,
 	type ObCalendarSettings,
 	TASK_STATUS_CHAR_MAP,
+	TASK_STATUS_OPTIONS,
 	type TaskStatus,
 } from "../types";
 import type { TaskDetailData } from "./taskFormModal";
@@ -68,6 +69,12 @@ export interface CalendarCallbacks {
 	onEventsChanged: () => void;
 	onEventDrop: (info: EventDropArg) => void;
 	onEventResize: (info: EventResizeDoneArg) => void;
+	onEventStatusChange: (
+		sourcePath: string,
+		lineNumber: number,
+		configIndex: number,
+		newStatus: TaskStatus,
+	) => void;
 }
 
 export function renderCalendar(
@@ -87,14 +94,14 @@ export function renderCalendar(
 			right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
 		},
 		buttonText: {
-			today: "今天",
-			month: "月",
-			week: "周",
-			day: "日",
-			list: "列表",
+			today: "Today",
+			month: "Month",
+			week: "Week",
+			day: "Day",
+			list: "List",
 		},
 		firstDay: settings.firstDay,
-		locale: "zh-cn",
+		locale: "en-us",
 		height: "100%",
 		nowIndicator: true,
 		editable: true,
@@ -139,6 +146,34 @@ export function renderCalendar(
 			if (info.event.extendedProps.completed) {
 				info.el.classList.add("ob-calendar-task-completed");
 			}
+
+			info.el.addEventListener("contextmenu", (e: MouseEvent) => {
+				e.preventDefault();
+				const { sourcePath, lineNumber, status, configIndex } =
+					info.event.extendedProps;
+				if (!sourcePath) return;
+
+				const menu = new Menu();
+				for (const option of TASK_STATUS_OPTIONS) {
+					menu.addItem((item) => {
+						item.setTitle(option.label);
+						if (status === option.value) {
+							item.setChecked(true);
+						}
+						item.onClick(() => {
+							if (option.value !== status) {
+								callbacks.onEventStatusChange(
+									sourcePath,
+									lineNumber,
+									configIndex ?? 0,
+									option.value,
+								);
+							}
+						});
+					});
+				}
+				menu.showAtMouseEvent(e);
+			});
 		},
 
 		select(info) {

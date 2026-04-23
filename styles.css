@@ -45,6 +45,8 @@
 	--fc-more-link-text-color: var(--text-accent);
 	--fc-neutral-text-color: var(--text-muted);
 	--fc-non-business-color: rgba(var(--mono-rgb-100), 0.04);
+
+	font-size: var(--font-smaller);
 }
 
 
@@ -52,7 +54,6 @@
 	border: none;
 	box-shadow: none;
 	border-radius: var(--radius-s);
-	min-height: 26px;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -89,6 +90,12 @@
 .fc .fc-event {
 	font-size: var(--font-smallest);
 	padding: 0;
+}
+
+.fc .fc-event:focus {
+	outline: none;
+	box-shadow: none;
+	--fc-event-selected-overlay-color: transparent;
 }
 
 .fc .ob-calendar-task-row {

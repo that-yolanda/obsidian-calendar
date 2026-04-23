@@ -56,6 +56,18 @@ export class CalendarView extends ItemView {
 			onEventResize: (info) => {
 				this.handleEventResize(info);
 			},
+			onEventStatusChange: async (
+				sourcePath,
+				lineNumber,
+				_configIndex,
+				newStatus,
+			) => {
+				await this.plugin.dailyNoteService.changeTaskStatus(
+					sourcePath,
+					lineNumber,
+					newStatus,
+				);
+			},
 		};
 
 		this.calendar = renderCalendar(
