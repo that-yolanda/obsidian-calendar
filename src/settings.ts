@@ -427,10 +427,10 @@ export class CalendarSettingTab extends PluginSettingTab {
 	}
 
 	private renderCalendarPreferences(containerEl: HTMLElement): void {
-		new Setting(containerEl).setHeading().setName("日历偏好");
 
-		new Setting(containerEl)
-			.setName("初始视图")
+		const group = new SettingGroup(containerEl).setHeading("日历偏好");
+		group.addSetting((setting) => {
+			setting.setName("初始视图")
 			.setDesc("打开日历时显示的视图")
 			.addDropdown((dropdown) =>
 				dropdown
@@ -446,9 +446,10 @@ export class CalendarSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
+		});
 
-		new Setting(containerEl)
-			.setName("周起始日")
+		group.addSetting((setting) => {
+			setting.setName("周起始日")
 			.setDesc("设置每周的第一天")
 			.addDropdown((dropdown) =>
 				dropdown
@@ -467,9 +468,10 @@ export class CalendarSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
+		});
 
-		new Setting(containerEl)
-			.setName("24小时制")
+		group.addSetting((setting) => {
+			setting.setName("24小时制")
 			.setDesc("使用24小时制显示时间")
 			.addToggle((toggle) =>
 				toggle
@@ -479,5 +481,6 @@ export class CalendarSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
+		});
 	}
 }
