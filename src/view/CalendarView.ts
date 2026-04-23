@@ -1,24 +1,49 @@
-import type { Calendar, EventDropArg } from "@fullcalendar/core";
+import type { Calendar, DatesSetArg, EventDropArg } from "@fullcalendar/core";
 import type { EventResizeDoneArg } from "@fullcalendar/interaction";
+import * as echarts from "echarts/core";
 import { ItemView, type WorkspaceLeaf } from "obsidian";
 import type ObCalendarPlugin from "../main";
 import { mapEventsToInputs } from "../services/eventMapper";
-import { CALENDAR_VIEW_TYPE } from "../types";
+import {
+	StatsDataService,
+	type StatsPeriodRange,
+} from "../services/statsDataService";
+import { CALENDAR_VIEW_TYPE, type StatsPeriod } from "../types";
 import {
 	type CalendarCallbacks,
 	openFileAtLine,
 	renderCalendar,
 	type SelectInfo,
+	setCalendarViewVisible,
+	setStatsHeaderMode,
+	setStatsToggleText,
 } from "./calendarRenderer";
+import {
+	buildBarOption,
+	buildDonutOption,
+	type StatsChartTheme,
+} from "./statsCharts";
+import {
+	renderStatsLayout,
+	type StatsRenderResult,
+	updateCards,
+} from "./statsRenderer";
 import { type TaskDetailData, TaskFormModal } from "./taskFormModal";
 
 export class CalendarView extends ItemView {
 	private plugin: ObCalendarPlugin;
 	private calendar: Calendar | null = null;
+	private statsDataService: StatsDataService;
+	private isStatsMode = false;
+	private statsResult: StatsRenderResult | null = null;
+	private currentPeriod: StatsPeriod = "week";
+	private currentRange: StatsPeriodRange | null = null;
+	private statsRefreshToken = 0;
 
 	constructor(leaf: WorkspaceLeaf, plugin: ObCalendarPlugin) {
 		super(leaf);
 		this.plugin = plugin;
+		this.statsDataService = new StatsDataService(plugin.dailyNoteService);
 	}
 
 	getViewType(): string {
@@ -68,6 +93,12 @@ export class CalendarView extends ItemView {
 					newStatus,
 				);
 			},
+			onStatsToggle: () => {
+				void this.toggleStatsMode();
+			},
+			onDatesSet: (dateInfo: DatesSetArg) => {
+				void this.handleDatesSet(dateInfo);
+			},
 		};
 
 		this.calendar = renderCalendar(
@@ -78,18 +109,30 @@ export class CalendarView extends ItemView {
 			callbacks,
 		);
 
+		this.currentPeriod = this.viewToPeriod(this.calendar.view.type);
+
 		this.plugin.dailyNoteService.onUpdate(() => {
-			this.refreshCalendar();
+			if (this.isStatsMode) {
+				void this.refreshStats();
+			} else {
+				this.refreshCalendar();
+			}
 		});
 	}
 
 	async onClose(): Promise<void> {
+		this.destroyStats();
 		this.calendar?.destroy();
 		this.calendar = null;
 	}
 
 	onResize(): void {
-		this.calendar?.updateSize();
+		if (this.isStatsMode && this.statsResult) {
+			this.statsResult.donutChart.resize();
+			this.statsResult.barChart.resize();
+		} else {
+			this.calendar?.updateSize();
+		}
 	}
 
 	public refreshCalendar(): void {
@@ -103,6 +146,144 @@ export class CalendarView extends ItemView {
 			this.calendar.addEvent(input);
 		}
 		this.calendar.updateSize();
+	}
+
+	public async refreshStats(reloadData = false): Promise<void> {
+		if (!this.statsResult) return;
+
+		const token = ++this.statsRefreshToken;
+		if (reloadData) {
+			await this.plugin.dailyNoteService.scanDailyNotes();
+			if (token !== this.statsRefreshToken || !this.statsResult) return;
+		}
+
+		const range = this.getCurrentStatsRange();
+		const summary = this.statsDataService.computePeriodSummary(range);
+
+		updateCards(this.statsResult.cards, summary);
+
+		const colors = this.plugin.settings.statsChartColors;
+		const theme = getStatsChartTheme(this.containerEl);
+
+		this.statsResult.donutChart.setOption(
+			buildDonutOption(summary, colors, theme),
+			{
+				notMerge: true,
+			},
+		);
+		this.statsResult.barChart.setOption(
+			buildBarOption(summary, this.currentPeriod, colors, theme),
+			{ notMerge: true },
+		);
+	}
+
+	private viewToPeriod(viewType: string): StatsPeriod {
+		return viewType === "dayGridMonth" ? "month" : "week";
+	}
+
+	private getCurrentStatsRange(): StatsPeriodRange {
+		if (this.currentRange) return this.currentRange;
+		if (!this.calendar) return this.dateRangeFromDates(new Date(), new Date());
+
+		return this.dateRangeFromDates(
+			this.calendar.view.currentStart,
+			this.getInclusiveEnd(this.calendar.view.currentEnd),
+		);
+	}
+
+	private dateRangeFromDates(start: Date, end: Date): StatsPeriodRange {
+		return {
+			start: this.formatDate(start),
+			end: this.formatDate(end),
+		};
+	}
+
+	private getInclusiveEnd(endExclusive: Date): Date {
+		const end = new Date(endExclusive);
+		end.setDate(end.getDate() - 1);
+		return end;
+	}
+
+	private formatDate(d: Date): string {
+		const year = d.getFullYear();
+		const month = String(d.getMonth() + 1).padStart(2, "0");
+		const day = String(d.getDate()).padStart(2, "0");
+		return `${year}-${month}-${day}`;
+	}
+
+	private async toggleStatsMode(): Promise<void> {
+		this.isStatsMode = !this.isStatsMode;
+		const container = this.containerEl.children[1] as HTMLElement;
+
+		if (this.isStatsMode) {
+			if (
+				this.calendar &&
+				!["dayGridMonth", "timeGridWeek"].includes(this.calendar.view.type)
+			) {
+				this.calendar.changeView("timeGridWeek");
+			}
+			setStatsToggleText(container, "日历");
+			setStatsHeaderMode(container, true);
+			setCalendarViewVisible(container, false);
+			await this.showStats(container);
+		} else {
+			this.statsRefreshToken++;
+			setStatsToggleText(container, "报表");
+			setStatsHeaderMode(container, false);
+			this.destroyStats();
+			setCalendarViewVisible(container, true);
+			this.calendar?.updateSize();
+		}
+	}
+
+	private async showStats(container: HTMLElement): Promise<void> {
+		let statsContainer = container.querySelector(
+			".ob-calendar-stats-content",
+		) as HTMLElement | null;
+		if (!statsContainer) {
+			statsContainer = container.createDiv({
+				cls: "ob-calendar-stats-content",
+			});
+		}
+		statsContainer.empty();
+
+		this.statsResult = renderStatsLayout(statsContainer, (el: HTMLElement) =>
+			echarts.init(el, undefined, { renderer: "svg" }),
+		);
+
+		await this.refreshStats(true);
+	}
+
+	private destroyStats(): void {
+		if (this.statsResult) {
+			this.statsResult.donutChart.dispose();
+			this.statsResult.barChart.dispose();
+			this.statsResult.cleanupResize();
+			this.statsResult = null;
+		}
+		const container = this.containerEl.children[1] as HTMLElement;
+		const statsContainer = container.querySelector(
+			".ob-calendar-stats-content",
+		);
+		if (statsContainer) {
+			statsContainer.remove();
+		}
+	}
+
+	private async handleDatesSet(dateInfo: DatesSetArg): Promise<void> {
+		this.currentPeriod = this.viewToPeriod(dateInfo.view.type);
+		this.currentRange = this.dateRangeFromDates(
+			dateInfo.view.currentStart,
+			this.getInclusiveEnd(dateInfo.view.currentEnd),
+		);
+
+		const container = this.containerEl.children[1] as HTMLElement;
+		setStatsToggleText(container, this.isStatsMode ? "日历" : "报表");
+		setStatsHeaderMode(container, this.isStatsMode);
+
+		if (this.isStatsMode) {
+			await this.refreshStats(true);
+		}
 	}
 
 	private handleEventClick(eventData: TaskDetailData): void {
@@ -213,4 +394,29 @@ export class CalendarView extends ItemView {
 			console.error("Failed to resize task:", e);
 		}
 	}
+}
+
+function getStatsChartTheme(rootEl: HTMLElement): StatsChartTheme {
+	return {
+		isDarkMode: document.body.classList.contains("theme-dark"),
+		textColor: resolveCssColor(rootEl, "--text-normal"),
+		titleSize: resolveCssSize(rootEl, "--h2-size"),
+		borderColor: resolveCssColor(rootEl, "--background-modifier-border"),
+	};
+}
+
+function resolveCssColor(rootEl: HTMLElement, name: string): string {
+	const el = rootEl.createSpan();
+	el.style.color = `var(${name})`;
+	const color = getComputedStyle(el).color;
+	el.remove();
+	return color;
+}
+
+function resolveCssSize(rootEl: HTMLElement, name: string): number {
+	const el = rootEl.createSpan();
+	el.style.fontSize = `var(${name})`;
+	const value = getComputedStyle(el).fontSize;
+	el.remove();
+	return Number.parseFloat(value);
 }

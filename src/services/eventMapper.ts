@@ -30,13 +30,12 @@ export function mapEventToInput(
 		end: event.endTime
 			? `${event.endDate || event.date}T${event.endTime}`
 			: undefined,
-		allDay: event.allDay,
+		allDay: !event.startTime,
 		display: "block",
 		backgroundColor: color,
 		borderColor: color,
 		textColor: "var(--text-normal)",
 		extendedProps: {
-			completed: event.completed,
 			status: event.status,
 			statusChar: event.statusChar,
 			sourcePath: event.sourcePath,

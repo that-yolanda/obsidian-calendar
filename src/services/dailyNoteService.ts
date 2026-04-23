@@ -7,14 +7,26 @@ import {
 } from "obsidian";
 import {
 	type CalendarEvent,
+	getTaskChar,
+	getTaskStatusFromChar,
 	type ObCalendarSettings,
-	TASK_CHAR_STATUS_MAP,
-	TASK_STATUS_CHAR_MAP,
 	type TaskConfig,
 	type TaskFormData,
-	type TaskInfo,
 	type TaskStatus,
 } from "../types";
+
+interface TaskInfo {
+	title: string;
+	status: TaskStatus;
+	statusChar: string;
+	date: string;
+	endDate?: string;
+	startTime?: string;
+	endTime?: string;
+	details?: string;
+	lineNumber: number;
+	configIndex: number;
+}
 
 export class DailyNoteService {
 	private app: App;
@@ -116,7 +128,7 @@ export class DailyNoteService {
 		const line = lines[lineNumber];
 		if (!line) throw new Error("Task line not found");
 
-		const newChar = TASK_STATUS_CHAR_MAP[newStatus];
+		const newChar = getTaskChar(newStatus);
 		lines[lineNumber] = line.replace(/- \[.\]/, `- [${newChar}]`);
 
 		await this.app.vault.modify(file, lines.join("\n"));
@@ -328,15 +340,15 @@ export class DailyNoteService {
 		const match = line.match(/^-\s+\[([^\]])\]\s+(.+)/);
 		if (!match?.[1] || !match[2]) return null;
 
-		const status = TASK_CHAR_STATUS_MAP[match[1]] ?? "initial";
-		let text = match[2].trim();
+		const status = getTaskStatusFromChar(match[1]);
+		let title = match[2].trim();
 
 		let date = fallbackDate ?? "";
 		let startTime: string | undefined;
 		let endTime: string | undefined;
 		let endDate: string | undefined;
 
-		const timedMatch = text.match(
+		const timedMatch = title.match(
 			/\{(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\}/,
 		);
 		if (timedMatch) {
@@ -344,19 +356,19 @@ export class DailyNoteService {
 			startTime = timedMatch[2];
 			endDate = timedMatch[3];
 			endTime = timedMatch[4];
-			text = text.replace(timedMatch[0], "").trim();
+			title = title.replace(timedMatch[0], "").trim();
 		} else {
-			const allDayMatch = text.match(/\{(\d{4}-\d{2}-\d{2})\}/);
+			const allDayMatch = title.match(/\{(\d{4}-\d{2}-\d{2})\}/);
 			if (allDayMatch?.[1]) {
 				date = allDayMatch[1];
-				text = text.replace(allDayMatch[0], "").trim();
+				title = title.replace(allDayMatch[0], "").trim();
 			}
 		}
 
 		if (!date) return null;
 
 		return {
-			text,
+			title,
 			status,
 			statusChar: match[1],
 			date,
@@ -417,13 +429,11 @@ export class DailyNoteService {
 	private taskToEvent(task: TaskInfo, sourcePath: string): CalendarEvent {
 		return {
 			id: `${sourcePath}::${task.lineNumber}`,
-			title: task.text,
+			title: task.title,
 			date: task.date,
 			endDate: task.endDate,
 			startTime: task.startTime,
 			endTime: task.endTime,
-			allDay: !task.startTime,
-			completed: task.status === "completed",
 			status: task.status,
 			statusChar: task.statusChar,
 			details: task.details,
@@ -437,9 +447,9 @@ export class DailyNoteService {
 		formData: TaskFormData,
 		configType: TaskConfig["type"],
 	): string {
-		const checkbox = TASK_STATUS_CHAR_MAP[formData.status] ?? " ";
+		const checkbox = getTaskChar(formData.status);
 
-		let line = `- [${checkbox}] ${formData.name}`;
+		let line = `- [${checkbox}] ${formData.title}`;
 
 		if (formData.allDay) {
 			if (configType === "file") {

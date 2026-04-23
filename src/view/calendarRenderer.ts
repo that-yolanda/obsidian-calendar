@@ -1,5 +1,6 @@
 import {
 	Calendar,
+	type DatesSetArg,
 	type EventClickArg,
 	type EventContentArg,
 	type EventDropArg,
@@ -13,8 +14,8 @@ import { type App, Menu, TFile } from "obsidian";
 import { mapEventsToInputs } from "../services/eventMapper";
 import {
 	type CalendarEvent,
+	getTaskChar,
 	type ObCalendarSettings,
-	TASK_STATUS_CHAR_MAP,
 	TASK_STATUS_OPTIONS,
 	type TaskStatus,
 } from "../types";
@@ -24,8 +25,7 @@ function renderEventContent(arg: EventContentArg): { domNodes: HTMLElement[] } {
 	const status = arg.event.extendedProps.status as TaskStatus;
 	const statusChar =
 		(arg.event.extendedProps.statusChar as string | undefined) ??
-		TASK_STATUS_CHAR_MAP[status] ??
-		" ";
+		getTaskChar(status);
 
 	const itemEl = document.createElement("div");
 	itemEl.className = "ob-calendar-task-row";
@@ -75,6 +75,8 @@ export interface CalendarCallbacks {
 		configIndex: number,
 		newStatus: TaskStatus,
 	) => void;
+	onStatsToggle: () => void;
+	onDatesSet: (dateInfo: DatesSetArg) => void;
 }
 
 export function renderCalendar(
@@ -88,10 +90,16 @@ export function renderCalendar(
 		plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
 		initialView: settings.initialView,
 		aspectRatio: 1,
+		customButtons: {
+			statsToggle: {
+				text: "报表",
+				click: () => callbacks.onStatsToggle(),
+			},
+		},
 		headerToolbar: {
 			left: "prev,next today",
 			center: "title",
-			right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+			right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek statsToggle",
 		},
 		buttonText: {
 			today: "Today",
@@ -143,7 +151,7 @@ export function renderCalendar(
 		},
 
 		eventDidMount(info) {
-			if (info.event.extendedProps.completed) {
+			if (info.event.extendedProps.status === "completed") {
 				info.el.classList.add("ob-calendar-task-completed");
 			}
 
@@ -203,8 +211,8 @@ export function renderCalendar(
 			) as HTMLElement | null;
 			if (!titleEl) return;
 
-			const start = dateInfo.start;
-			const end = dateInfo.end;
+			const start = dateInfo.view.currentStart;
+			const end = dateInfo.view.currentEnd;
 			const fmt = (d: Date) => {
 				const m = String(d.getMonth() + 1).padStart(2, "0");
 				const dd = String(d.getDate()).padStart(2, "0");
@@ -225,6 +233,8 @@ export function renderCalendar(
 				title = `${fmt(start)} - ${fmt(endExclusive)}`;
 			}
 			titleEl.textContent = title;
+
+			callbacks.onDatesSet(dateInfo);
 		},
 	});
 
@@ -248,5 +258,41 @@ export async function openFileAtLine(
 			setCursor: (pos: { line: number; ch: number }) => void;
 		};
 		editor.setCursor({ line: lineNumber, ch: 0 });
+	}
+}
+
+export function setStatsToggleText(container: HTMLElement, text: string): void {
+	const btn = container.querySelector(
+		".fc-statsToggle-button",
+	) as HTMLElement | null;
+	if (!btn) return;
+
+	btn.replaceChildren(document.createTextNode(text));
+	btn.setAttribute("title", text);
+	btn.setAttribute("aria-label", text);
+}
+
+export function setStatsHeaderMode(
+	container: HTMLElement,
+	isStatsMode: boolean,
+): void {
+	for (const selector of [".fc-timeGridDay-button", ".fc-listWeek-button"]) {
+		const btn = container.querySelector(selector) as HTMLButtonElement | null;
+		if (!btn) continue;
+
+		btn.disabled = isStatsMode;
+		btn.setAttribute("aria-disabled", String(isStatsMode));
+	}
+}
+
+export function setCalendarViewVisible(
+	container: HTMLElement,
+	visible: boolean,
+): void {
+	const harness = container.querySelector(
+		".fc-view-harness",
+	) as HTMLElement | null;
+	if (harness) {
+		harness.style.display = visible ? "" : "none";
 	}
 }

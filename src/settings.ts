@@ -3,7 +3,6 @@ import {
 	type App,
 	normalizePath,
 	PluginSettingTab,
-	Setting,
 	SettingGroup,
 	TFile,
 } from "obsidian";
@@ -11,10 +10,15 @@ import type ObCalendarPlugin from "./main";
 
 export { DEFAULT_SETTINGS, type ObCalendarSettings } from "./types";
 
-import type { TaskConfig, TaskConfigType } from "./types";
+import {
+	DEFAULT_STATS_BAR_COLOR,
+	DEFAULT_TASK_DARK_COLOR,
+	DEFAULT_TASK_LIGHT_COLOR,
+	TASK_STATUS_OPTIONS,
+	type TaskConfig,
+	type TaskConfigType,
+} from "./types";
 
-const DEFAULT_LIGHT_COLOR = "#cccccc";
-const DEFAULT_DARK_COLOR = "#555555";
 class MarkdownFileSuggest extends AbstractInputSuggest<string> {
 	private readonly filePaths: string[];
 
@@ -63,6 +67,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 
 		await this.renderTaskConfigs(containerEl);
 		this.renderCalendarPreferences(containerEl);
+		this.renderStatsChartColors(containerEl);
 	}
 
 	private async getTemplateHeadings(): Promise<string[]> {
@@ -131,8 +136,8 @@ export class CalendarSettingTab extends PluginSettingTab {
 			type: "daily-note",
 			heading: "",
 			targetFile: "",
-			lightColor: DEFAULT_LIGHT_COLOR,
-			darkColor: DEFAULT_DARK_COLOR,
+			lightColor: DEFAULT_TASK_LIGHT_COLOR,
+			darkColor: DEFAULT_TASK_DARK_COLOR,
 		};
 	}
 
@@ -170,7 +175,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 						.setDesc(typeLabel)
 						.addColorPicker((picker) => {
 							picker
-								.setValue(config.lightColor || DEFAULT_LIGHT_COLOR)
+								.setValue(config.lightColor)
 								.onChange(async (value: string) => {
 									const item = this.plugin.settings.taskConfigs[index];
 									if (item) item.lightColor = value;
@@ -179,7 +184,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 						})
 						.addColorPicker((picker) => {
 							picker
-								.setValue(config.darkColor || DEFAULT_DARK_COLOR)
+								.setValue(config.darkColor)
 								.onChange(async (value: string) => {
 									const item = this.plugin.settings.taskConfigs[index];
 									if (item) item.darkColor = value;
@@ -378,7 +383,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 
 				const lightColorInput = document.createElement("input");
 				lightColorInput.type = "color";
-				lightColorInput.value = config.lightColor || "#cccccc";
+				lightColorInput.value = config.lightColor;
 				colorRow.appendChild(lightColorInput);
 
 				lightColorInput.addEventListener("input", () => {
@@ -388,7 +393,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 
 				const darkColorInput = document.createElement("input");
 				darkColorInput.type = "color";
-				darkColorInput.value = config.darkColor || "#555555";
+				darkColorInput.value = config.darkColor;
 				colorRow.appendChild(darkColorInput);
 
 				darkColorInput.addEventListener("input", () => {
@@ -427,60 +432,115 @@ export class CalendarSettingTab extends PluginSettingTab {
 	}
 
 	private renderCalendarPreferences(containerEl: HTMLElement): void {
-
 		const group = new SettingGroup(containerEl).setHeading("日历偏好");
 		group.addSetting((setting) => {
-			setting.setName("初始视图")
-			.setDesc("打开日历时显示的视图")
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOptions({
-						dayGridMonth: "月视图",
-						timeGridWeek: "周视图",
-						timeGridDay: "日视图",
-						listWeek: "列表视图",
-					})
-					.setValue(this.plugin.settings.initialView)
-					.onChange(async (value: string) => {
-						this.plugin.settings.initialView = value;
-						await this.plugin.saveSettings();
-					}),
-			);
+			setting
+				.setName("初始视图")
+				.setDesc("打开日历时显示的视图")
+				.addDropdown((dropdown) =>
+					dropdown
+						.addOptions({
+							dayGridMonth: "月视图",
+							timeGridWeek: "周视图",
+							timeGridDay: "日视图",
+							listWeek: "列表视图",
+						})
+						.setValue(this.plugin.settings.initialView)
+						.onChange(async (value: string) => {
+							this.plugin.settings.initialView = value;
+							await this.plugin.saveSettings();
+						}),
+				);
 		});
 
 		group.addSetting((setting) => {
-			setting.setName("周起始日")
-			.setDesc("设置每周的第一天")
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOptions({
-						"0": "周日",
-						"1": "周一",
-						"2": "周二",
-						"3": "周三",
-						"4": "周四",
-						"5": "周五",
-						"6": "周六",
-					})
-					.setValue(String(this.plugin.settings.firstDay))
-					.onChange(async (value: string) => {
-						this.plugin.settings.firstDay = Number(value);
-						await this.plugin.saveSettings();
-					}),
-			);
+			setting
+				.setName("周起始日")
+				.setDesc("设置每周的第一天")
+				.addDropdown((dropdown) =>
+					dropdown
+						.addOptions({
+							"0": "周日",
+							"1": "周一",
+							"2": "周二",
+							"3": "周三",
+							"4": "周四",
+							"5": "周五",
+							"6": "周六",
+						})
+						.setValue(String(this.plugin.settings.firstDay))
+						.onChange(async (value: string) => {
+							this.plugin.settings.firstDay = Number(value);
+							await this.plugin.saveSettings();
+						}),
+				);
 		});
 
 		group.addSetting((setting) => {
-			setting.setName("24小时制")
-			.setDesc("使用24小时制显示时间")
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.timeFormat24h)
-					.onChange(async (value: boolean) => {
-						this.plugin.settings.timeFormat24h = value;
+			setting
+				.setName("24小时制")
+				.setDesc("使用24小时制显示时间")
+				.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.timeFormat24h)
+						.onChange(async (value: boolean) => {
+							this.plugin.settings.timeFormat24h = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+		});
+	}
+	private renderStatsChartColors(containerEl: HTMLElement): void {
+		const group = new SettingGroup(containerEl).setHeading("图表配色");
+		group.addSetting((setting) => {
+			setting.setDesc("重置后使用内置默认颜色");
+		});
+
+		const colors = this.plugin.settings.statsChartColors;
+
+		for (const status of TASK_STATUS_OPTIONS) {
+			group.addSetting((s) => {
+				s.setName(status.label);
+				s.addColorPicker((picker) => {
+					picker.setValue(colors[status.value]);
+					picker.onChange(async (value: string) => {
+						this.plugin.settings.statsChartColors[status.value] = value;
 						await this.plugin.saveSettings();
-					}),
-			);
+					});
+				});
+				s.addExtraButton((btn) => {
+					btn
+						.setIcon("reset")
+						.setTooltip("重置为默认")
+						.onClick(async () => {
+							this.plugin.settings.statsChartColors[status.value] =
+								status.chartColor;
+							await this.plugin.saveSettings();
+							await this.display();
+						});
+				});
+			});
+		}
+
+		group.addSetting((s) => {
+			s.setName("柱状图");
+			s.addColorPicker((picker) => {
+				picker.setValue(colors.bar);
+				picker.onChange(async (value: string) => {
+					this.plugin.settings.statsChartColors.bar = value;
+					await this.plugin.saveSettings();
+				});
+			});
+			s.addExtraButton((btn) => {
+				btn
+					.setIcon("reset")
+					.setTooltip("重置为默认")
+					.onClick(async () => {
+						this.plugin.settings.statsChartColors.bar = DEFAULT_STATS_BAR_COLOR;
+						await this.plugin.saveSettings();
+						await this.display();
+					});
+			});
 		});
 	}
 }

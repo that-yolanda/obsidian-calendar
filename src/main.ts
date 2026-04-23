@@ -4,6 +4,9 @@ import { CalendarSettingTab } from "./settings";
 import {
 	CALENDAR_VIEW_TYPE,
 	DEFAULT_SETTINGS,
+	DEFAULT_STATS_CHART_COLORS,
+	DEFAULT_TASK_DARK_COLOR,
+	DEFAULT_TASK_LIGHT_COLOR,
 	type ObCalendarSettings,
 } from "./types";
 import { CalendarView } from "./view/CalendarView";
@@ -62,6 +65,7 @@ export default class ObCalendarPlugin extends Plugin {
 					const view = leaf.view;
 					if (view instanceof CalendarView) {
 						view.refreshCalendar();
+						view.refreshStats();
 					}
 				}
 			}),
@@ -69,8 +73,9 @@ export default class ObCalendarPlugin extends Plugin {
 	}
 
 	onunload(): void {
-		const leaves = this.app.workspace.getLeavesOfType(CALENDAR_VIEW_TYPE);
-		for (const leaf of leaves) {
+		const calendarLeaves =
+			this.app.workspace.getLeavesOfType(CALENDAR_VIEW_TYPE);
+		for (const leaf of calendarLeaves) {
 			leaf.detach();
 		}
 	}
@@ -97,11 +102,32 @@ export default class ObCalendarPlugin extends Plugin {
 	}
 
 	async loadSettings(): Promise<void> {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.settings = getSettingsWithDefaults(await this.loadData());
 	}
 
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
 		this.dailyNoteService.updateSettings(this.settings);
 	}
+}
+
+function getSettingsWithDefaults(
+	data: Partial<ObCalendarSettings> | null | undefined,
+): ObCalendarSettings {
+	const settings = { ...DEFAULT_SETTINGS, ...data };
+
+	return {
+		...settings,
+		taskConfigs: settings.taskConfigs.map((config) => ({
+			type: config.type,
+			heading: config.heading,
+			targetFile: config.targetFile,
+			lightColor: config.lightColor ?? DEFAULT_TASK_LIGHT_COLOR,
+			darkColor: config.darkColor ?? DEFAULT_TASK_DARK_COLOR,
+		})),
+		statsChartColors: {
+			...DEFAULT_STATS_CHART_COLORS,
+			...settings.statsChartColors,
+		},
+	};
 }

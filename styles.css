@@ -1,6 +1,10 @@
 .ob-calendar-wrapper {
 	height: 100%;
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
 	padding: var(--size-4-4);
+	overflow-x: hidden;
 }
 
 .is-phone .ob-calendar-wrapper {
@@ -20,6 +24,7 @@
 
 
 .fc{
+	font-size: var(--font-smaller);
 	height: 100%;
 
 	--fc-button-text-color: var(--text-normal);
@@ -46,7 +51,7 @@
 	--fc-neutral-text-color: var(--text-muted);
 	--fc-non-business-color: rgba(var(--mono-rgb-100), 0.04);
 
-	font-size: var(--font-smaller);
+
 }
 
 
@@ -397,4 +402,82 @@
 .is-phone .ob-calendar-settings .setting-item-control > button{
 	display: block;
 	width: 100%;
+}
+
+/* Stats Dashboard */
+.ob-calendar-stats-content {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	gap: var(--size-4-4);
+}
+
+.ob-calendar-stats-cards {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--size-4-4);
+	width: 100%;
+	min-width: 0;
+}
+
+.is-phone .ob-calendar-stats-cards {
+	grid-template-columns: 1fr;
+}
+
+.ob-calendar-stat-card {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: var(--size-4-4) var(--size-4-4);
+	min-width: 0;
+	box-sizing: border-box;
+	margin-bottom: 0;
+}
+
+.ob-calendar-stat-card .is-positive {
+	color: var(--color-green);
+}
+
+.ob-calendar-stat-card .is-negative {
+	color: var(--text-error);
+}
+
+
+.ob-calendar-stat-change {
+	font-size: var(--font-small);
+	color: var(--text-muted);
+}
+
+.ob-calendar-stats-charts {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+	gap: var(--size-4-4);
+	flex: 1;
+	width: 100%;
+	min-width: 0;
+	min-height: 280px;
+}
+
+.is-phone .ob-calendar-stats-charts {
+	grid-template-columns: 1fr;
+}
+
+.stats-chart-donut,
+.stats-chart-bar {
+	min-height: 260px;
+	min-width: 0;
+	max-width: 100%;
+	box-sizing: border-box;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+
+}
+
+.stats-chart-donut > div,
+.stats-chart-bar > div {
+	width: 100%;
+	max-width: 100%;
+	min-width: 0;
+	height: 100%;
 }

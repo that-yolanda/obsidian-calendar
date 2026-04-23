@@ -139,7 +139,7 @@ export class TaskFormModal extends Modal {
 
 		form.addEventListener("submit", async () => {
 			const formData = getFormData();
-			if (!formData.name) return;
+			if (!formData.title) return;
 
 			if (this.options.mode === "edit") {
 				const editOptions = this.options;
@@ -172,7 +172,7 @@ export class TaskFormModal extends Modal {
 
 interface TaskFormElements {
 	form: HTMLFormElement;
-	nameInput: HTMLInputElement;
+	titleInput: HTMLInputElement;
 	getFormData: () => TaskFormData;
 }
 
@@ -217,13 +217,13 @@ function buildTaskForm(
 		dropdown.setValue(String(initialData.configIndex));
 	});
 
-	let nameInput!: HTMLInputElement;
+	let titleInput!: HTMLInputElement;
 	new Setting(form).setName("任务名称").addText((text) => {
-		nameInput = text.inputEl;
-		nameInput.type = "text";
-		nameInput.placeholder = "请输入任务名称";
-		nameInput.required = true;
-		nameInput.value = initialData.title;
+		titleInput = text.inputEl;
+		titleInput.type = "text";
+		titleInput.placeholder = "请输入任务名称";
+		titleInput.required = true;
+		titleInput.value = initialData.title;
 	});
 
 	let isAllDay = initialData.allDay;
@@ -274,9 +274,9 @@ function buildTaskForm(
 
 	return {
 		form,
-		nameInput,
+		titleInput,
 		getFormData: () => ({
-			name: nameInput.value.trim(),
+			title: titleInput.value.trim(),
 			details: detailsInput.value.trim(),
 			allDay: isAllDay,
 			startDate: startTimeRow.dateInput.value,

@@ -1,25 +1,52 @@
 export const CALENDAR_VIEW_TYPE = "ob-calendar-view";
 
-export type TaskStatus = "initial" | "completed" | "incomplete" | "cancelled";
+export const DEFAULT_TASK_LIGHT_COLOR = "#cccccc";
+export const DEFAULT_TASK_DARK_COLOR = "#555555";
+export const DEFAULT_STATS_BAR_COLOR = "#cccccc";
+
+export const TASK_STATUS_OPTIONS = [
+	{
+		value: "initial",
+		label: "未开始",
+		taskChar: " ",
+		chartColor: "#f9c344",
+	},
+	{
+		value: "incomplete",
+		label: "未完成",
+		taskChar: "/",
+		chartColor: "#b7b523",
+	},
+	{
+		value: "completed",
+		label: "完成",
+		taskChar: "x",
+		chartColor: "#302833",
+	},
+	{
+		value: "cancelled",
+		label: "取消",
+		taskChar: "-",
+		chartColor: "#2d2f48",
+	},
+] as const;
+
+export type TaskStatus = (typeof TASK_STATUS_OPTIONS)[number]["value"];
 export type TaskConfigType = "daily-note" | "file";
-export const TASK_STATUS_OPTIONS: Array<{
-	value: TaskStatus;
-	label: string;
-	taskChar: string;
-}> = [
-	{ value: "initial", label: "未开始", taskChar: " " },
-	{ value: "incomplete", label: "未完成", taskChar: "/" },
-	{ value: "completed", label: "完成", taskChar: "x" },
-	{ value: "cancelled", label: "取消", taskChar: "-" },
-];
 
-export const TASK_STATUS_CHAR_MAP = Object.fromEntries(
-	TASK_STATUS_OPTIONS.map((option) => [option.value, option.taskChar]),
-) as Record<TaskStatus, string>;
+export function getTaskChar(status: TaskStatus): string {
+	return (
+		TASK_STATUS_OPTIONS.find((option) => option.value === status)?.taskChar ??
+		" "
+	);
+}
 
-export const TASK_CHAR_STATUS_MAP = Object.fromEntries(
-	TASK_STATUS_OPTIONS.map((option) => [option.taskChar, option.value]),
-) as Record<string, TaskStatus>;
+export function getTaskStatusFromChar(taskChar: string): TaskStatus {
+	return (
+		TASK_STATUS_OPTIONS.find((option) => option.taskChar === taskChar)?.value ??
+		"initial"
+	);
+}
 
 export interface TaskConfig {
 	type: TaskConfigType;
@@ -29,6 +56,32 @@ export interface TaskConfig {
 	darkColor: string;
 }
 
+export type StatsChartColors = Record<TaskStatus | "bar", string>;
+
+export const DEFAULT_STATS_CHART_COLORS: StatsChartColors = {
+	initial: TASK_STATUS_OPTIONS[0].chartColor,
+	incomplete: TASK_STATUS_OPTIONS[1].chartColor,
+	completed: TASK_STATUS_OPTIONS[2].chartColor,
+	cancelled: TASK_STATUS_OPTIONS[3].chartColor,
+	bar: DEFAULT_STATS_BAR_COLOR,
+};
+
+export interface ObCalendarSettings {
+	taskConfigs: TaskConfig[];
+	initialView: string;
+	firstDay: number;
+	timeFormat24h: boolean;
+	statsChartColors: StatsChartColors;
+}
+
+export const DEFAULT_SETTINGS: ObCalendarSettings = {
+	taskConfigs: [],
+	initialView: "timeGridWeek",
+	firstDay: 1,
+	timeFormat24h: false,
+	statsChartColors: DEFAULT_STATS_CHART_COLORS,
+};
+
 export interface CalendarEvent {
 	id: string;
 	title: string;
@@ -36,8 +89,6 @@ export interface CalendarEvent {
 	endDate?: string;
 	startTime?: string;
 	endTime?: string;
-	allDay: boolean;
-	completed: boolean;
 	status: TaskStatus;
 	statusChar: string;
 	details?: string;
@@ -47,21 +98,8 @@ export interface CalendarEvent {
 	tags?: string[];
 }
 
-export interface TaskInfo {
-	text: string;
-	status: TaskStatus;
-	statusChar: string;
-	date: string;
-	endDate?: string;
-	startTime?: string;
-	endTime?: string;
-	details?: string;
-	lineNumber: number;
-	configIndex: number;
-}
-
 export interface TaskFormData {
-	name: string;
+	title: string;
 	details: string;
 	allDay: boolean;
 	startDate: string;
@@ -72,16 +110,17 @@ export interface TaskFormData {
 	configIndex: number;
 }
 
-export interface ObCalendarSettings {
-	taskConfigs: TaskConfig[];
-	initialView: string;
-	firstDay: number;
-	timeFormat24h: boolean;
-}
+export type StatsPeriod = "week" | "month";
 
-export const DEFAULT_SETTINGS: ObCalendarSettings = {
-	taskConfigs: [],
-	initialView: "timeGridWeek",
-	firstDay: 1,
-	timeFormat24h: false,
-};
+export type TaskStatusCount = Record<TaskStatus, number>;
+
+export interface PeriodSummary {
+	totalTasks: number;
+	completedRate: number;
+	totalMinutes: number;
+	prevTotalTasks: number;
+	prevCompletedRate: number;
+	prevTotalMinutes: number;
+	statusDistribution: TaskStatusCount;
+	dailyTimeSpent: Array<{ date: string; minutes: number }>;
+}
