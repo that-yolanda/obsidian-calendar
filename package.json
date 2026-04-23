@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-calendar",
+	"name": "icalendar",
 	"version": "0.0.8",
-	"description": "Obsidian Calendar",
+	"description": "iCalendar",
 	"main": "main.js",
 	"type": "module",
 	"author": "Yolanda",

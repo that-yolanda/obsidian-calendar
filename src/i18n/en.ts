@@ -1,9 +1,9 @@
 const en = {
 	// Main
-	"main.openCalendar": "Open Calendar",
+	"main.openCalendar": "Open iCalendar",
 
 	// View
-	"view.calendar": "Calendar",
+	"view.calendar": "iCalendar",
 	"view.report": "Report",
 
 	// Calendar buttons

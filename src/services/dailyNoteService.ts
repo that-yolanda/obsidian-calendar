@@ -123,15 +123,16 @@ export class DailyNoteService {
 		const file = this.app.vault.getAbstractFileByPath(sourcePath);
 		if (!(file instanceof TFile)) throw new Error("File not found");
 
-		const content = await this.app.vault.read(file);
-		const lines = content.split("\n");
-		const line = lines[lineNumber];
-		if (!line) throw new Error("Task line not found");
+		await this.app.vault.process(file, (content) => {
+			const lines = content.split("\n");
+			const line = lines[lineNumber];
+			if (!line) throw new Error("Task line not found");
 
-		const newChar = getTaskChar(newStatus);
-		lines[lineNumber] = line.replace(/- \[.\]/, `- [${newChar}]`);
+			const newChar = getTaskChar(newStatus);
+			lines[lineNumber] = line.replace(/- \[.\]/, `- [${newChar}]`);
 
-		await this.app.vault.modify(file, lines.join("\n"));
+			return lines.join("\n");
+		});
 	}
 
 	async updateTask(
@@ -211,19 +212,20 @@ export class DailyNoteService {
 		const file = this.app.vault.getAbstractFileByPath(sourcePath);
 		if (!(file instanceof TFile)) throw new Error("File not found");
 
-		const content = await this.app.vault.read(file);
-		const lines = content.split("\n");
-		const line = lines[lineNumber];
-		if (!line) throw new Error("Task line not found");
+		await this.app.vault.process(file, (content) => {
+			const lines = content.split("\n");
+			const line = lines[lineNumber];
+			if (!line) throw new Error("Task line not found");
 
-		const endDate = newEnd.newEndDate ?? "";
-		const endTime = newEnd.newEndTime ?? "";
-		lines[lineNumber] = line.replace(
-			/(\{\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s*-\s*)\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(\})/,
-			`$1${endDate} ${endTime}$2`,
-		);
+			const endDate = newEnd.newEndDate ?? "";
+			const endTime = newEnd.newEndTime ?? "";
+			lines[lineNumber] = line.replace(
+				/(\{\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s*-\s*)\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(\})/,
+				`$1${endDate} ${endTime}$2`,
+			);
 
-		await this.app.vault.modify(file, lines.join("\n"));
+			return lines.join("\n");
+		});
 	}
 
 	private getTaskConfig(index: number): TaskConfig {
@@ -476,21 +478,23 @@ export class DailyNoteService {
 		taskLine: string,
 	): Promise<void> {
 		const file = await this.ensureTargetFile(config, date);
-		const content = await this.app.vault.read(file);
-		const { insertionPoint, headingExists } = this.findTaskInsertionPoint(
-			content,
-			config.heading,
-		);
-		const lines = content.split("\n");
 
-		if (!headingExists && config.heading) {
-			this.appendTaskSection(lines, config.heading, taskLine);
-		} else {
-			this.removeBlankLinesAt(lines, insertionPoint);
-			lines.splice(insertionPoint, 0, taskLine);
-		}
+		await this.app.vault.process(file, (content) => {
+			const { insertionPoint, headingExists } = this.findTaskInsertionPoint(
+				content,
+				config.heading,
+			);
+			const lines = content.split("\n");
 
-		await this.app.vault.modify(file, lines.join("\n"));
+			if (!headingExists && config.heading) {
+				this.appendTaskSection(lines, config.heading, taskLine);
+			} else {
+				this.removeBlankLinesAt(lines, insertionPoint);
+				lines.splice(insertionPoint, 0, taskLine);
+			}
+
+			return lines.join("\n");
+		});
 	}
 
 	private async replaceTaskBlock(
@@ -501,15 +505,16 @@ export class DailyNoteService {
 		const file = this.app.vault.getAbstractFileByPath(sourcePath);
 		if (!(file instanceof TFile)) throw new Error("File not found");
 
-		const content = await this.app.vault.read(file);
-		const lines = content.split("\n");
-		const range = this.getTaskBlockRange(lines, lineNumber);
-		lines.splice(
-			range.start,
-			range.end - range.start,
-			...taskBlock.split("\n"),
-		);
-		await this.app.vault.modify(file, lines.join("\n"));
+		await this.app.vault.process(file, (content) => {
+			const lines = content.split("\n");
+			const range = this.getTaskBlockRange(lines, lineNumber);
+			lines.splice(
+				range.start,
+				range.end - range.start,
+				...taskBlock.split("\n"),
+			);
+			return lines.join("\n");
+		});
 	}
 
 	private async removeTaskBlock(
@@ -519,13 +524,16 @@ export class DailyNoteService {
 		const file = this.app.vault.getAbstractFileByPath(sourcePath);
 		if (!(file instanceof TFile)) throw new Error("File not found");
 
-		const content = await this.app.vault.read(file);
-		const lines = content.split("\n");
-		const range = this.getTaskBlockRange(lines, lineNumber);
-		const removedLines = lines.slice(range.start, range.end);
-		lines.splice(range.start, range.end - range.start);
-		await this.app.vault.modify(file, lines.join("\n"));
-		return removedLines.join("\n");
+		let removedBlock = "";
+		await this.app.vault.process(file, (content) => {
+			const lines = content.split("\n");
+			const range = this.getTaskBlockRange(lines, lineNumber);
+			const removedLines = lines.slice(range.start, range.end);
+			removedBlock = removedLines.join("\n");
+			lines.splice(range.start, range.end - range.start);
+			return lines.join("\n");
+		});
+		return removedBlock;
 	}
 
 	private getTaskBlockRange(
@@ -820,17 +828,22 @@ export class DailyNoteService {
 		const file = this.app.vault.getAbstractFileByPath(sourcePath);
 		if (!(file instanceof TFile)) throw new Error("File not found");
 
-		const content = await this.app.vault.read(file);
-		const lines = content.split("\n");
-		const range = this.getTaskBlockRange(lines, lineNumber);
-		const taskBlock = lines.slice(range.start, range.end).join("\n");
-		const updatedBlock = this.rewriteTaskDates(taskBlock, newTime, configType);
-		lines.splice(
-			range.start,
-			range.end - range.start,
-			...updatedBlock.split("\n"),
-		);
-		await this.app.vault.modify(file, lines.join("\n"));
+		await this.app.vault.process(file, (content) => {
+			const lines = content.split("\n");
+			const range = this.getTaskBlockRange(lines, lineNumber);
+			const taskBlock = lines.slice(range.start, range.end).join("\n");
+			const updatedBlock = this.rewriteTaskDates(
+				taskBlock,
+				newTime,
+				configType,
+			);
+			lines.splice(
+				range.start,
+				range.end - range.start,
+				...updatedBlock.split("\n"),
+			);
+			return lines.join("\n");
+		});
 	}
 
 	private rewriteTaskDates(

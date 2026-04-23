@@ -33,7 +33,7 @@ src/
 
 ```zsh
 pnpm dev
-obsidian plugin:reload id=obsidian-calendar
+obsidian plugin:reload id=icalendar
 obsidian dev:mobile on
 ```
 
@@ -93,7 +93,7 @@ pnpm release 0.0.1 --dry-run
 将 `main.js`、`manifest.json`、`styles.css` 放到：
 
 ```text
-<Vault>/.obsidian/plugins/obsidian-calendar/
+<Vault>/.obsidian/plugins/icalendar/
 ```
 
 然后在 Obsidian 里重载插件并启用它。

@@ -10,7 +10,7 @@ if (!version) {
 	process.exit(1);
 }
 
-if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
+if (!/^\d+\.\d+\.\d+$/.test(version)) {
 	console.error(`Invalid version: ${version}`);
 	process.exit(1);
 }

@@ -1,53 +1,64 @@
 ![calendar](docs/screenshot/hero.jpg)
 
 [EN](README.md) | [中文](README.zh.md)
-# Obsidian Calendar
+
+# iCalendar
 
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/thatyolanda)
 
-A FullCalendar-based Obsidian plugin that displays and manages tasks from daily notes in a calendar view.
+iCalendar is an Obsidian calendar plugin that visualizes and manages tasks from both **daily notes** and **project files** in an interactive calendar view.
+
 
 ## Features
 
+### Task Management
+
+Tasks come from two sources, each with its own color on the calendar:
+
+- **Daily note tasks** — compatible with the built-in Obsidian daily notes plugin. Tasks are read from a configurable heading in each daily note.
+- **Project tasks** — point to any Markdown file in your vault and pick a heading to pull tasks from.
+
+![configure-dailynote-task](docs/screenshot/1-configure-dailynote-task.gif)
+![configure-project-task](docs/screenshot/2-configure-project-task.gif)
+
 ### Calendar View
 
-<!-- Screenshot: Month view with tasks displayed as colored blocks -->
-
-- Switch between month, week, and list views
-- Automatically reads tasks from daily notes and displays them by status with different colors
+- Month, week, and list views with smooth switching
+- Tasks color-coded by source and status
 - Click a date to open the corresponding daily note
-- Configurable 12/24-hour time format
+- Drag and drop to reschedule tasks
+- Configurable 12 / 24-hour time format
 
 ### Task Management
 
-<!-- Screenshot: Task creation/edit modal -->
+- Click on empty space to create a task — auto-written to the corresponding daily note or project file
+- Click an existing task to open the edit modal — title, time, status, and Markdown description
+- Right-click a task to quickly change status or delete it
 
-- Click on empty calendar space to create a new task, auto-written to the corresponding daily note
-- Click an existing task to open the edit modal, changes sync back to the daily note
-- Set start time, end time, status, and description for tasks
-- Built-in Markdown editor with live preview for task descriptions
-
-### Context Menu
-
-<!-- Screenshot: Right-click status menu on a task -->
-
-- Right-click a task to quickly change status (todo / completed / in-progress / cancelled)
-- Right-click to delete a task
+![create-task](docs/screenshot/3-create-task.gif)
+![handle-task](docs/screenshot/4-handle-task.gif)
 
 ### Dashboard
 
-<!-- Screenshot: Stats dashboard with cards, donut chart, and bar chart -->
+Switch to the stats view for a visual summary of your work:
 
-- Stats cards: total tasks, completion rate, total duration with period-over-period comparison
-- Task status distribution donut chart
-- Daily time spent bar chart, supports weekly / monthly / yearly views
+- **Stats cards** — total tasks, completion rate, total duration, with period-over-period comparison
+- **Donut chart** — task status distribution
+- **Bar chart** — daily time spent, switchable between week / month views
 
-### Mobile Support
+![dashboard](docs/screenshot/5-report.gif)
 
-<!-- Screenshot: Calendar view on mobile -->
+### Mobile Optimized
 
-- Optimized toolbar and layout for phone screens
-- Task editing modal adapted for mobile interaction
+Deeply optimized layout and interactions for mobile devices — compact toolbar, touch-friendly editing, and responsive charts.
+
+![mobile](docs/screenshot/6-mobile.png)
+
+### Extended Checkbox Status
+
+Works with themes that support alternate checkbox types (`[/]` in-progress, `[-]` cancelled, etc.).
+
+![task-status](docs/screenshot/7-task-status.png)
 
 ### i18n
 
@@ -59,27 +70,14 @@ A FullCalendar-based Obsidian plugin that displays and manages tasks from daily 
 ### BRAT (Recommended)
 
 1. Install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin
-2. Add Beta Plugin: `that-yolanda/obsidian-calendar`
+2. Add Beta Plugin: `https://github.com/that-yolanda/obsidian-calendar`
 3. Enable the plugin
 
 ### Manual Installation
 
 1. Download `main.js`, `manifest.json`, `styles.css` from the [latest release](https://github.com/that-yolanda/obsidian-calendar/releases)
-2. Place the files in `<Vault>/.obsidian/plugins/obsidian-calendar/`
+2. Place the files in `<Vault>/.obsidian/plugins/icalendar/`
 3. Enable the plugin in Obsidian settings
-
-## Screenshots
-
-Below are the suggested screenshots to add (replace this section after adding images):
-
-| Screenshot | Description | Suggested filename |
-|------------|-------------|-------------------|
-| Calendar month view | Shows tasks as colored blocks on dates | `docs/screenshot/calendar.png` |
-| Task modal | Creating or editing a task | `docs/screenshot/task-modal.png` |
-| Context menu | Right-click to change task status | `docs/screenshot/context-menu.png` |
-| Dashboard | Stats cards and charts | `docs/screenshot/dashboard.png` |
-| Settings panel | Plugin settings page | `docs/screenshot/settings.png` |
-| Mobile view | Calendar on mobile | `docs/screenshot/mobile.png` |
 
 ## Development
 

@@ -1,9 +1,9 @@
 {
-	"id": "obsidian-calendar",
-	"name": "Obsidian Calendar",
+	"id": "icalendar",
+	"name": "iCalendar",
 	"version": "0.0.8",
 	"minAppVersion": "1.11.0",
-	"description": "A calendar view for managing tasks in Obsidian.",
+	"description": "Visualize and manage daily note and project tasks in a calendar view.",
 	"author": "Yolanda",
 	"authorUrl": "https://github.com/that-yolanda",
 	"fundingUrl": "https://ko-fi.com/thatyolanda",
