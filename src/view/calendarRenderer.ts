@@ -93,7 +93,7 @@ export function renderCalendar(
 		aspectRatio: 1,
 		customButtons: {
 			statsToggle: {
-				icon: t("view.report"),
+				text: t("view.report"),
 				click: () => callbacks.onStatsToggle(),
 			},
 		},
