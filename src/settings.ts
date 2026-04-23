@@ -13,6 +13,8 @@ export { DEFAULT_SETTINGS, type ObCalendarSettings } from "./types";
 
 import type { TaskConfig, TaskConfigType } from "./types";
 
+const DEFAULT_LIGHT_COLOR = "#cccccc";
+const DEFAULT_DARK_COLOR = "#555555";
 class MarkdownFileSuggest extends AbstractInputSuggest<string> {
 	private readonly filePaths: string[];
 
@@ -129,8 +131,8 @@ export class CalendarSettingTab extends PluginSettingTab {
 			type: "daily-note",
 			heading: "",
 			targetFile: "",
-			lightColor: "#cccccc",
-			darkColor: "#555555",
+			lightColor: DEFAULT_LIGHT_COLOR,
+			darkColor: DEFAULT_DARK_COLOR,
 		};
 	}
 
@@ -154,7 +156,6 @@ export class CalendarSettingTab extends PluginSettingTab {
 
 		const group = new SettingGroup(containerEl)
 			.setHeading("任务配置")
-			.addClass("ob-calendar-task-group");
 
 		for (let i = 0; i < taskConfigs.length; i++) {
 			const index = i;
@@ -170,7 +171,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 						.setDesc(typeLabel)
 						.addColorPicker((picker) => {
 							picker
-								.setValue(config.lightColor || "#cccccc")
+								.setValue(config.lightColor || DEFAULT_LIGHT_COLOR)
 								.onChange(async (value: string) => {
 									const item = this.plugin.settings.taskConfigs[index];
 									if (item) item.lightColor = value;
@@ -179,14 +180,14 @@ export class CalendarSettingTab extends PluginSettingTab {
 						})
 						.addColorPicker((picker) => {
 							picker
-								.setValue(config.darkColor || "#555555")
+								.setValue(config.darkColor || DEFAULT_DARK_COLOR)
 								.onChange(async (value: string) => {
 									const item = this.plugin.settings.taskConfigs[index];
 									if (item) item.darkColor = value;
 									await this.plugin.saveSettings();
 								});
 						})
-						.addExtraButton((btn) => {
+						.addButton((btn) => {
 							btn
 								.setIcon("trash")
 								.setTooltip("删除")
@@ -203,8 +204,8 @@ export class CalendarSettingTab extends PluginSettingTab {
 			// Unconfigured task: single Setting with embedded form
 			const availableHeadings = headingDataMap.get(index) ?? [];
 			group.addSetting((setting) => {
-				setting.settingEl.addClass("ob-calendar-task-edit");
-				setting.setName("新任务");
+				setting.settingEl.addClass("ob-calendar-task");
+				setting.setName("未命名任务");
 
 				const fieldsEl = setting.settingEl.createDiv({
 					cls: "ob-calendar-task-fields",
@@ -396,7 +397,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 					if (item) item.darkColor = darkColorInput.value;
 				});
 
-				setting.addExtraButton((btn) => {
+				setting.addButton((btn) => {
 					btn
 						.setIcon("trash")
 						.setTooltip("删除")

@@ -87,7 +87,7 @@
 }
 
 .fc .fc-event {
-	font-size: var(--font-ui-small);
+	font-size: var(--font-smallest);
 	padding: 0;
 }
 
@@ -102,6 +102,7 @@
 .fc .task-list-item-checkbox {
 	pointer-events: none;
 }
+
 
 .fc .ob-calendar-task-completed {
 	opacity: 0.6;
@@ -294,9 +295,6 @@
 	overflow-y: auto;
 }
 
-.ob-calendar-setting-stretch .setting-item-control {
-	align-self: stretch;
-}
 
 .ob-calendar-status-list {
 	display: grid;
@@ -351,11 +349,15 @@
 	flex: 0 1 auto;
 }
 
-.ob-calendar-settings .ob-calendar-task-group {
-	margin-bottom: var(--size-4-6);
+
+/* settings */
+.ob-calendar-settings {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-6);
 }
 
-.ob-calendar-settings .ob-calendar-task-edit {
+.ob-calendar-settings .ob-calendar-task {
 	flex-wrap: wrap;
 	align-items: flex-start;
 }
@@ -364,8 +366,7 @@
 	flex-basis: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: var(--size-4-2);
-	margin-top: var(--size-4-1);
+	gap: var(--size-4-4);
 }
 
 .ob-calendar-settings .ob-calendar-task-field {
@@ -377,29 +378,16 @@
 .ob-calendar-settings .ob-calendar-task-field > label {
 	flex: 0 0 auto;
 	color: var(--text-muted);
-	font-size: var(--font-ui-small);
+	font-size: var(--font-small);
 	min-width: 5em;
 }
 
-.ob-calendar-settings .ob-calendar-task-field > select,
-.ob-calendar-settings .ob-calendar-task-field > input:not([type="color"]) {
-	flex: 1;
-	min-width: 0;
-	background: var(--background-modifier-form-field);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	padding: var(--size-4-1) var(--size-4-2);
-	color: var(--text-normal);
-	font: inherit;
-}
-
+.ob-calendar-settings .setting-item-control > input[type="color"],
 .ob-calendar-settings .ob-calendar-task-field > input[type="color"] {
 	width: auto;
-	padding: 0;
-	border: initial;
-	border-radius: initial;
-	background: initial;
-	appearance: auto;
-	-webkit-appearance: auto;
 }
 
+.is-phone .ob-calendar-settings .setting-item-control > button{
+	display: block;
+	width: 100%;
+}
