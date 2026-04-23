@@ -12,15 +12,21 @@
 	margin-bottom: var(--size-4-18);
 }
 
-.is-phone .fc .fc-toolbar-title {
-	display: none;
+.is-phone .fc .fc-header-toolbar {
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: var(--size-4-1);
+	font-size: var(--font-smaller);
+
+	overflow-x: auto;
 }
 
-.is-phone .fc .fc-header-toolbar {
-	flex-direction: row;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--size-4-2);
+.fc .fc-toolbar-chunk{
+	display: flex;
+}
+
+.is-phone .fc .fc-toolbar-chunk:nth-child(2) {
+	display: none;
 }
 
 
