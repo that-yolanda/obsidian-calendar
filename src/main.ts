@@ -39,7 +39,7 @@ export default class ObCalendarPlugin extends Plugin {
 
 		this.registerEvent(
 			this.app.metadataCache.on("changed", (file: TFile) => {
-				this.dailyNoteService.handleFileChange(file);
+				void this.dailyNoteService.handleFileChange(file);
 			}),
 		);
 
@@ -54,7 +54,7 @@ export default class ObCalendarPlugin extends Plugin {
 		this.registerEvent(
 			this.app.vault.on("rename", (file) => {
 				if (file instanceof TFile) {
-					this.dailyNoteService.handleFileChange(file);
+					void this.dailyNoteService.handleFileChange(file);
 				}
 			}),
 		);
@@ -66,7 +66,7 @@ export default class ObCalendarPlugin extends Plugin {
 					const view = leaf.view;
 					if (view instanceof CalendarView) {
 						view.refreshCalendar();
-						view.refreshStats();
+						void view.refreshStats();
 					}
 				}
 			}),
@@ -97,13 +97,14 @@ export default class ObCalendarPlugin extends Plugin {
 					type: CALENDAR_VIEW_TYPE,
 					active: true,
 				});
-				this.app.workspace.revealLeaf(leaf);
+				void this.app.workspace.revealLeaf(leaf);
 			}
 		}
 	}
 
 	async loadSettings(): Promise<void> {
-		this.settings = getSettingsWithDefaults(await this.loadData());
+		const data: unknown = await this.loadData();
+		this.settings = getSettingsWithDefaults(data);
 	}
 
 	async saveSettings(): Promise<void> {
@@ -112,10 +113,11 @@ export default class ObCalendarPlugin extends Plugin {
 	}
 }
 
-function getSettingsWithDefaults(
-	data: Partial<ObCalendarSettings> | null | undefined,
-): ObCalendarSettings {
-	const settings = { ...DEFAULT_SETTINGS, ...data };
+function getSettingsWithDefaults(data: unknown): ObCalendarSettings {
+	const savedSettings = isRecord(data)
+		? (data as Partial<ObCalendarSettings>)
+		: {};
+	const settings = { ...DEFAULT_SETTINGS, ...savedSettings };
 
 	return {
 		...settings,
@@ -131,4 +133,8 @@ function getSettingsWithDefaults(
 			...settings.statsChartColors,
 		},
 	};
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
 }

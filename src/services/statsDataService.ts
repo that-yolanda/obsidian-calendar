@@ -77,8 +77,8 @@ export class StatsDataService {
 			TASK_STATUS_OPTIONS.map((option) => [option.value, 0]),
 		) as TaskStatusCount;
 		for (const e of events) {
-			const key = e.status as keyof TaskStatusCount;
-			if (key in result) {
+			if (e.status in result) {
+				const key = e.status;
 				result[key]++;
 			}
 		}

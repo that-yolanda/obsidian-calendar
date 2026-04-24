@@ -47,7 +47,7 @@ export function mapEventToInput(
 }
 
 function isDarkTheme(): boolean {
-	return document.body.classList.contains("theme-dark");
+	return activeDocument.body.classList.contains("theme-dark");
 }
 
 function getTaskBackgroundColor(color: string, alpha: number): string {

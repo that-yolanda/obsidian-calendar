@@ -4,15 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.0.9] - 2026-04-24
+
 ### Added
 - i18n support for Chinese (zh-CN) and English (en)
+- Obsidian-specific ESLint checks for community plugin review rules
 
 ### Changed
 - Refactored common time functions into `src/utils/time.ts`
 - Improved y-axis label formatting in stats bar chart (rounded to hours)
+- Updated English UI copy to use sentence case
 
 ### Fixed
 - Fixed FullCalendar toolbar wrapping issue on mobile
+- Replaced direct `localStorage` and `document` usage with Obsidian-compatible APIs
+- Fixed unhandled promise, unsafe type, unnecessary assertion, and async callback lint issues
+- Replaced direct `style.display` toggles with CSS classes
 
 ## [0.0.6] - 2025-04-22
 

@@ -22,20 +22,34 @@ import {
 } from "../types";
 import type { TaskDetailData } from "./taskFormModal";
 
-function renderEventContent(arg: EventContentArg): { domNodes: HTMLElement[] } {
-	const status = arg.event.extendedProps.status as TaskStatus;
-	const statusChar =
-		(arg.event.extendedProps.statusChar as string | undefined) ??
-		getTaskChar(status);
+interface EventExtendedProps {
+	status: TaskStatus;
+	statusChar?: string;
+	sourcePath: string;
+	lineNumber: number;
+	configIndex: number;
+	details?: string;
+}
 
-	const itemEl = document.createElement("div");
+function getEventExtendedProps(
+	event: EventClickArg["event"],
+): Partial<EventExtendedProps> {
+	return event.extendedProps;
+}
+
+function renderEventContent(arg: EventContentArg): { domNodes: HTMLElement[] } {
+	const extendedProps = getEventExtendedProps(arg.event);
+	const status = extendedProps.status ?? "initial";
+	const statusChar = extendedProps.statusChar ?? getTaskChar(status);
+
+	const itemEl = activeDocument.createElement("div");
 	itemEl.className = "ob-calendar-task-row";
 	itemEl.setAttribute("data-task", statusChar);
 	if (status !== "initial") {
 		itemEl.classList.add("is-checked");
 	}
 
-	const checkboxEl = document.createElement("input");
+	const checkboxEl = activeDocument.createElement("input");
 	checkboxEl.type = "checkbox";
 	checkboxEl.setAttribute("data-task", statusChar);
 	checkboxEl.className = "task-list-item-checkbox";
@@ -43,7 +57,7 @@ function renderEventContent(arg: EventContentArg): { domNodes: HTMLElement[] } {
 	checkboxEl.tabIndex = -1;
 	checkboxEl.checked = status !== "initial";
 
-	const titleEl = document.createElement("span");
+	const titleEl = activeDocument.createElement("span");
 	titleEl.className = "ob-calendar-task-title";
 	titleEl.textContent = arg.event.title;
 
@@ -144,12 +158,12 @@ export function renderCalendar(
 
 		eventClick(info: EventClickArg) {
 			const { sourcePath, lineNumber, status, details, configIndex } =
-				info.event.extendedProps;
-			if (!sourcePath) return;
+				getEventExtendedProps(info.event);
+			if (!sourcePath || lineNumber === undefined) return;
 
 			const eventData: TaskDetailData = {
 				title: info.event.title,
-				status: status as TaskStatus,
+				status: status ?? "initial",
 				allDay: info.event.allDay,
 				startDate: info.event.startStr.slice(0, 10),
 				startTime: info.event.startStr.includes("T")
@@ -168,22 +182,21 @@ export function renderCalendar(
 		},
 
 		eventDidMount(info) {
-			if (info.event.extendedProps.status === "completed") {
+			const mountedExtendedProps = getEventExtendedProps(info.event);
+			if (mountedExtendedProps.status === "completed") {
 				info.el.classList.add("ob-calendar-task-completed");
 			}
 
 			info.el.addEventListener("contextmenu", (e: MouseEvent) => {
 				e.preventDefault();
 				const { sourcePath, lineNumber, status, configIndex } =
-					info.event.extendedProps;
-				if (!sourcePath) return;
+					getEventExtendedProps(info.event);
+				if (!sourcePath || lineNumber === undefined) return;
 
 				const menu = new Menu();
 				for (const option of TASK_STATUS_OPTIONS) {
 					menu.addItem((item) => {
-						item.setTitle(
-							t(`status.${option.value}` as Parameters<typeof t>[0]),
-						);
+						item.setTitle(t(`status.${option.value}`));
 						if (status === option.value) {
 							item.setChecked(true);
 						}
@@ -225,9 +238,7 @@ export function renderCalendar(
 		},
 
 		datesSet(dateInfo) {
-			const titleEl = container.querySelector(
-				".fc-toolbar-title",
-			) as HTMLElement | null;
+			const titleEl = container.querySelector<HTMLElement>(".fc-toolbar-title");
 			if (!titleEl) return;
 
 			const start = dateInfo.view.currentStart;
@@ -281,12 +292,10 @@ export async function openFileAtLine(
 }
 
 export function setStatsToggleText(container: HTMLElement, text: string): void {
-	const btn = container.querySelector(
-		".fc-statsToggle-button",
-	) as HTMLElement | null;
+	const btn = container.querySelector<HTMLElement>(".fc-statsToggle-button");
 	if (!btn) return;
 
-	btn.replaceChildren(document.createTextNode(text));
+	btn.replaceChildren(activeDocument.createTextNode(text));
 	btn.setAttribute("title", text);
 	btn.setAttribute("aria-label", text);
 }
@@ -296,7 +305,7 @@ export function setStatsHeaderMode(
 	isStatsMode: boolean,
 ): void {
 	for (const selector of [".fc-timeGridDay-button", ".fc-listWeek-button"]) {
-		const btn = container.querySelector(selector) as HTMLButtonElement | null;
+		const btn = container.querySelector<HTMLButtonElement>(selector);
 		if (!btn) continue;
 
 		btn.disabled = isStatsMode;
@@ -308,10 +317,8 @@ export function setCalendarViewVisible(
 	container: HTMLElement,
 	visible: boolean,
 ): void {
-	const harness = container.querySelector(
-		".fc-view-harness",
-	) as HTMLElement | null;
+	const harness = container.querySelector<HTMLElement>(".fc-view-harness");
 	if (harness) {
-		harness.style.display = visible ? "" : "none";
+		harness.toggleClass("ob-calendar-hidden", !visible);
 	}
 }

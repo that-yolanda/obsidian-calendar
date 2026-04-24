@@ -71,24 +71,24 @@ export class CalendarView extends ItemView {
 				this.handleEventClick(eventData);
 			},
 			onSelect: (selectInfo) => {
-				this.handleDateSelect(selectInfo);
+				void this.handleDateSelect(selectInfo);
 			},
 			onEventsChanged: () => {
 				this.refreshCalendar();
 			},
 			onEventDrop: (info) => {
-				this.handleEventDrop(info);
+				void this.handleEventDrop(info);
 			},
 			onEventResize: (info) => {
-				this.handleEventResize(info);
+				void this.handleEventResize(info);
 			},
-			onEventStatusChange: async (
+			onEventStatusChange: (
 				sourcePath,
 				lineNumber,
 				_configIndex,
 				newStatus,
 			) => {
-				await this.plugin.dailyNoteService.changeTaskStatus(
+				void this.plugin.dailyNoteService.changeTaskStatus(
 					sourcePath,
 					lineNumber,
 					newStatus,
@@ -121,10 +121,11 @@ export class CalendarView extends ItemView {
 		});
 	}
 
-	async onClose(): Promise<void> {
+	onClose(): Promise<void> {
 		this.destroyStats();
 		this.calendar?.destroy();
 		this.calendar = null;
+		return Promise.resolve();
 	}
 
 	onResize(): void {
@@ -238,9 +239,9 @@ export class CalendarView extends ItemView {
 	}
 
 	private async showStats(container: HTMLElement): Promise<void> {
-		let statsContainer = container.querySelector(
+		let statsContainer = container.querySelector<HTMLElement>(
 			".ob-calendar-stats-content",
-		) as HTMLElement | null;
+		);
 		if (!statsContainer) {
 			statsContainer = container.createDiv({
 				cls: "ob-calendar-stats-content",
@@ -352,17 +353,22 @@ export class CalendarView extends ItemView {
 	}
 
 	private async handleEventDrop(info: EventDropArg): Promise<void> {
-		const { sourcePath, lineNumber, configIndex } = info.event.extendedProps;
+		const { sourcePath } = info.event.extendedProps;
 		if (!sourcePath) {
 			info.revert();
 			return;
 		}
 
 		try {
+			const extendedProps = info.event.extendedProps as Partial<{
+				sourcePath: string;
+				lineNumber: number;
+				configIndex: number;
+			}>;
 			await this.plugin.dailyNoteService.moveTask(
-				sourcePath,
-				lineNumber,
-				configIndex ?? 0,
+				extendedProps.sourcePath ?? "",
+				extendedProps.lineNumber ?? 0,
+				extendedProps.configIndex ?? 0,
 				{
 					newStartDate: info.event.startStr.slice(0, 10),
 					newStartTime: info.event.startStr.includes("T")
@@ -382,8 +388,11 @@ export class CalendarView extends ItemView {
 	}
 
 	private async handleEventResize(info: EventResizeDoneArg): Promise<void> {
-		const { sourcePath, lineNumber } = info.event.extendedProps;
-		if (!sourcePath) {
+		const { sourcePath, lineNumber } = info.event.extendedProps as Partial<{
+			sourcePath: string;
+			lineNumber: number;
+		}>;
+		if (!sourcePath || lineNumber === undefined) {
 			info.revert();
 			return;
 		}
@@ -404,7 +413,7 @@ export class CalendarView extends ItemView {
 
 function getStatsChartTheme(rootEl: HTMLElement): StatsChartTheme {
 	return {
-		isDarkMode: document.body.classList.contains("theme-dark"),
+		isDarkMode: activeDocument.body.classList.contains("theme-dark"),
 		textColor: resolveCssColor(rootEl, "--text-normal"),
 		titleSize: resolveCssSize(rootEl, "--h2-size"),
 		borderColor: resolveCssColor(rootEl, "--background-modifier-border"),

@@ -1,3 +1,4 @@
+import { moment } from "obsidian";
 import en, { type TranslationKey } from "./en";
 import zhCN from "./zh-cn";
 
@@ -9,10 +10,7 @@ const localeMap: Record<string, Partial<typeof en>> = {
 };
 
 function getLocale(): string {
-	const stored = localStorage.getItem("language");
-	if (stored) return stored;
-	// biome-ignore lint/suspicious/noExplicitAny: moment is globally available in Obsidian
-	return (window as any).moment?.locale() ?? "en";
+	return moment.locale() ?? "en";
 }
 
 export function t(key: TranslationKey, ...args: string[]): string {

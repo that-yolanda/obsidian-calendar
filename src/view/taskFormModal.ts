@@ -147,13 +147,13 @@ export class TaskFormModal extends Modal {
 				this.close();
 			});
 
-		form.addEventListener("submit", async () => {
+		form.addEventListener("submit", () => {
 			const formData = getFormData();
 			if (!formData.title) return;
 
 			if (this.options.mode === "edit") {
 				const editOptions = this.options;
-				await editOptions.onSave(
+				void editOptions.onSave(
 					editOptions.initialData.sourcePath,
 					editOptions.initialData.lineNumber,
 					formData,
@@ -244,8 +244,8 @@ function buildTaskForm(
 			toggle.setValue(initialData.allDay);
 			toggle.onChange((value) => {
 				isAllDay = value;
-				startTimeRow.settingEl.style.display = value ? "none" : "";
-				endTimeRow.settingEl.style.display = value ? "none" : "";
+				startTimeRow.settingEl.toggleClass("ob-calendar-hidden", value);
+				endTimeRow.settingEl.toggleClass("ob-calendar-hidden", value);
 			});
 		});
 	allDaySetting.settingEl.addClass("ob-calendar-toggle-setting");
@@ -265,8 +265,8 @@ function buildTaskForm(
 	);
 
 	if (isAllDay) {
-		startTimeRow.settingEl.style.display = "none";
-		endTimeRow.settingEl.style.display = "none";
+		startTimeRow.settingEl.classList.add("ob-calendar-hidden");
+		endTimeRow.settingEl.classList.add("ob-calendar-hidden");
 	}
 
 	const statusField = addTaskStatusSetting(

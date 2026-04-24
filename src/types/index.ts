@@ -8,22 +8,22 @@ export const TASK_STATUS_OPTIONS = [
 	{
 		value: "initial",
 		taskChar: " ",
-		chartColor: "#f9c344",
+		chartColor: "#ebefe7",
 	},
 	{
 		value: "incomplete",
 		taskChar: "/",
-		chartColor: "#b7b523",
+		chartColor: "#f24646",
 	},
 	{
 		value: "completed",
 		taskChar: "x",
-		chartColor: "#302833",
+		chartColor: "#7acbe6",
 	},
 	{
 		value: "cancelled",
 		taskChar: "-",
-		chartColor: "#2d2f48",
+		chartColor: "#629086",
 	},
 ] as const;
 
@@ -119,4 +119,26 @@ export interface PeriodSummary {
 	prevTotalMinutes: number;
 	statusDistribution: TaskStatusCount;
 	dailyTimeSpent: Array<{ date: string; minutes: number }>;
+}
+
+export interface ObsidianInternalApp {
+	internalPlugins?: {
+		getPluginById(id: string): {
+			instance?: { options?: Record<string, string> };
+		} | null;
+	};
+	plugins?: {
+		plugins?: Record<
+			string,
+			{
+				settings?: {
+					daily?: {
+						template?: string;
+						format?: string;
+						folder?: string;
+					};
+				};
+			}
+		>;
+	};
 }

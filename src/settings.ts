@@ -11,6 +11,7 @@ import type ObCalendarPlugin from "./main";
 
 export { DEFAULT_SETTINGS, type ObCalendarSettings } from "./types";
 
+import type { ObsidianInternalApp } from "./types";
 import {
 	DEFAULT_STATS_BAR_COLOR,
 	DEFAULT_TASK_DARK_COLOR,
@@ -61,21 +62,24 @@ export class CalendarSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	async display(): Promise<void> {
+	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
 		containerEl.addClass("ob-calendar-settings");
 
+		void this.renderSettingsContent(containerEl);
+	}
+
+	private async renderSettingsContent(containerEl: HTMLElement): Promise<void> {
 		await this.renderTaskConfigs(containerEl);
 		this.renderCalendarPreferences(containerEl);
 		this.renderStatsChartColors(containerEl);
 	}
 
 	private async getTemplateHeadings(): Promise<string[]> {
-		// biome-ignore lint/suspicious/noExplicitAny: Obsidian internal API
-		const dailyNotesPlugin = (this.app as any).internalPlugins?.getPluginById(
-			"daily-notes",
-		);
+		const appInternal = this.app as unknown as ObsidianInternalApp;
+		const dailyNotesPlugin =
+			appInternal.internalPlugins?.getPluginById("daily-notes");
 		const rawPath: string = dailyNotesPlugin?.instance?.options?.template ?? "";
 
 		if (!rawPath) return [];
@@ -203,7 +207,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 								.onClick(async () => {
 									this.plugin.settings.taskConfigs.splice(index, 1);
 									await this.plugin.saveSettings();
-									await this.display();
+									this.display();
 								});
 						});
 				});
@@ -232,7 +236,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 				typeSelect.add(new Option(t("taskType.project"), "file"));
 				typeSelect.value = config.type;
 
-				typeSelect.addEventListener("change", async () => {
+				typeSelect.addEventListener("change", () => {
 					const item = this.plugin.settings.taskConfigs[index];
 					if (!item) return;
 					this.manualHeadingDrafts.delete(index);
@@ -241,7 +245,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 						item.targetFile = "";
 					}
 					item.heading = "";
-					await this.display();
+					void this.renderSettingsContent(this.containerEl);
 				});
 
 				// File
@@ -253,13 +257,13 @@ export class CalendarSettingTab extends PluginSettingTab {
 				});
 
 				if (config.type === "daily-note") {
-					const fileInput = document.createElement("input");
+					const fileInput = activeDocument.createElement("input");
 					fileInput.type = "text";
 					fileInput.value = t("settings.readFromDailyNotes");
 					fileInput.disabled = true;
 					fileRow.appendChild(fileInput);
 				} else {
-					const fileInput = document.createElement("input");
+					const fileInput = activeDocument.createElement("input");
 					fileInput.type = "search";
 					fileInput.placeholder = t("settings.searchFile");
 					fileInput.value = config.targetFile || "";
@@ -271,7 +275,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 						this.manualHeadingDrafts.delete(index);
 						item.targetFile = value.trim();
 						item.heading = "";
-						await this.display();
+						this.display();
 					};
 
 					const suggest = new MarkdownFileSuggest(
@@ -334,18 +338,20 @@ export class CalendarSettingTab extends PluginSettingTab {
 					? "__manual__"
 					: currentHeading;
 
-				headingSelect.addEventListener("change", async () => {
+				headingSelect.addEventListener("change", () => {
 					const item = this.plugin.settings.taskConfigs[index];
 					if (!item) return;
 					if (headingSelect.value === "__manual__") {
 						this.manualHeadingDrafts.add(index);
-						await this.display();
+						void this.renderSettingsContent(this.containerEl);
 						return;
 					}
 					this.manualHeadingDrafts.delete(index);
 					item.heading = headingSelect.value.trim();
-					await this.plugin.saveSettings();
-					await this.display();
+					void (async () => {
+						await this.plugin.saveSettings();
+						await this.renderSettingsContent(this.containerEl);
+					})();
 				});
 
 				// Manual heading
@@ -356,7 +362,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 					manualRow.createEl("label", {
 						text: t("settings.manualHeading"),
 					});
-					const manualInput = document.createElement("input");
+					const manualInput = activeDocument.createElement("input");
 					manualInput.type = "text";
 					manualInput.placeholder = t("settings.enterHeadingName");
 					manualInput.value = currentHeading;
@@ -368,7 +374,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 						item.heading = manualInput.value.trim();
 						this.manualHeadingDrafts.delete(index);
 						await this.plugin.saveSettings();
-						await this.display();
+						this.display();
 					};
 
 					manualInput.addEventListener("input", () => {
@@ -396,7 +402,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 					text: t("settings.color"),
 				});
 
-				const lightColorInput = document.createElement("input");
+				const lightColorInput = activeDocument.createElement("input");
 				lightColorInput.type = "color";
 				lightColorInput.value = config.lightColor;
 				colorRow.appendChild(lightColorInput);
@@ -406,7 +412,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 					if (item) item.lightColor = lightColorInput.value;
 				});
 
-				const darkColorInput = document.createElement("input");
+				const darkColorInput = activeDocument.createElement("input");
 				darkColorInput.type = "color";
 				darkColorInput.value = config.darkColor;
 				colorRow.appendChild(darkColorInput);
@@ -423,7 +429,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 						.onClick(async () => {
 							this.manualHeadingDrafts.delete(index);
 							this.plugin.settings.taskConfigs.splice(index, 1);
-							await this.display();
+							this.display();
 						});
 				});
 			});
@@ -440,7 +446,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 						this.plugin.settings.taskConfigs.push(
 							this.createDefaultTaskConfig(),
 						);
-						await this.display();
+						this.display();
 					});
 			});
 		});
@@ -519,7 +525,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 
 		for (const status of TASK_STATUS_OPTIONS) {
 			group.addSetting((s) => {
-				s.setName(t(`status.${status.value}` as Parameters<typeof t>[0]));
+				s.setName(t(`status.${status.value}`));
 				s.addColorPicker((picker) => {
 					picker.setValue(colors[status.value]);
 					picker.onChange(async (value: string) => {
@@ -535,7 +541,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 							this.plugin.settings.statsChartColors[status.value] =
 								status.chartColor;
 							await this.plugin.saveSettings();
-							await this.display();
+							this.display();
 						});
 				});
 			});
@@ -557,7 +563,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 					.onClick(async () => {
 						this.plugin.settings.statsChartColors.bar = DEFAULT_STATS_BAR_COLOR;
 						await this.plugin.saveSettings();
-						await this.display();
+						this.display();
 					});
 			});
 		});

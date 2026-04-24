@@ -33,7 +33,7 @@ export function addMarkdownEditorSetting(
 	});
 	textarea.value = initialValue;
 	textarea.rows = 4;
-	textarea.style.display = "none";
+	textarea.classList.add("ob-calendar-hidden");
 
 	let isEditing = false;
 
@@ -54,15 +54,15 @@ export function addMarkdownEditorSetting(
 		if (isEditing) return;
 
 		isEditing = true;
-		previewEl.style.display = "none";
-		textarea.style.display = "";
+		previewEl.classList.add("ob-calendar-hidden");
+		textarea.classList.remove("ob-calendar-hidden");
 		textarea.focus();
 	});
 
 	textarea.addEventListener("blur", () => {
 		isEditing = false;
-		textarea.style.display = "none";
-		previewEl.style.display = "";
+		textarea.classList.add("ob-calendar-hidden");
+		previewEl.classList.remove("ob-calendar-hidden");
 		void renderPreview();
 	});
 
@@ -115,7 +115,7 @@ export function addTaskStatusSetting(
 
 		itemEl.createSpan({
 			cls: "ob-calendar-status-label",
-			text: t(`status.${option.value}` as Parameters<typeof t>[0]),
+			text: t(`status.${option.value}`),
 		});
 
 		const selectOption = () => {

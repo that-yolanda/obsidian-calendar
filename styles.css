@@ -314,6 +314,10 @@
 	overflow-y: auto;
 }
 
+.ob-calendar-hidden {
+	display: none !important;
+}
+
 
 .ob-calendar-status-list {
 	display: grid;

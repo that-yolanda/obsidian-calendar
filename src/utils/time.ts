@@ -16,7 +16,7 @@ export function formatMinutes(m: number, roundToHour = false): string {
 
 export function parseTimeToMinutes(time: string): number {
 	const parts = time.split(":");
-	return (Number(parts[0]) ?? 0) * 60 + (Number(parts[1]) ?? 0);
+	return (Number(parts[0]) || 0) * 60 + (Number(parts[1]) || 0);
 }
 
 export function formatDate(d: Date): string {

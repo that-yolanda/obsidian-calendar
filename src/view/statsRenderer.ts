@@ -24,8 +24,7 @@ export interface StatsRenderResult {
 
 export function renderStatsLayout(
 	container: HTMLElement,
-	// biome-ignore lint/suspicious/noExplicitAny: echarts.init is typed via echarts/core
-	initChart: (el: HTMLElement) => any,
+	initChart: (el: HTMLElement) => EChartsType,
 ): StatsRenderResult {
 	const cardsContainer = container.createDiv({
 		cls: "ob-calendar-stats-cards",

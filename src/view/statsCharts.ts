@@ -89,7 +89,7 @@ export function buildDonutOption(
 				},
 				data: TASK_STATUS_OPTIONS.map((status) => ({
 					value: dist[status.value],
-					name: t(`status.${status.value}` as Parameters<typeof t>[0]),
+					name: t(`status.${status.value}`),
 					itemStyle: {
 						color: getStatusChartColor(status, colors),
 					},
@@ -125,11 +125,7 @@ export function buildBarOption(
 		tooltip: {
 			trigger: "axis",
 			formatter(params: unknown) {
-				const p = Array.isArray(params) ? params[0] : params;
-				const data = p as {
-					name: string;
-					value: number;
-				};
+				const data = getTooltipData(Array.isArray(params) ? params[0] : params);
 				return `${data.name}<br/>${t("stats.timeSpent")}: ${formatMinutes(data.value)}`;
 			},
 		},
@@ -169,4 +165,21 @@ export function buildBarOption(
 			},
 		],
 	};
+}
+
+function getTooltipData(value: unknown): { name: string; value: number } {
+	if (
+		typeof value === "object" &&
+		value !== null &&
+		"name" in value &&
+		"value" in value
+	) {
+		const data = value as { name?: unknown; value?: unknown };
+		return {
+			name: typeof data.name === "string" ? data.name : "",
+			value: typeof data.value === "number" ? data.value : 0,
+		};
+	}
+
+	return { name: "", value: 0 };
 }

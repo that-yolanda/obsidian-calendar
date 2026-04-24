@@ -10,6 +10,7 @@ import {
 	getTaskChar,
 	getTaskStatusFromChar,
 	type ObCalendarSettings,
+	type ObsidianInternalApp,
 	type TaskConfig,
 	type TaskFormData,
 	type TaskStatus,
@@ -622,14 +623,13 @@ export class DailyNoteService {
 	}
 
 	private getDailyNoteTemplatePath(): string {
-		// biome-ignore lint/suspicious/noExplicitAny: Obsidian internal/community plugin API
-		const appAny = this.app as any;
+		const appInternal = this.app as unknown as ObsidianInternalApp;
 		const coreTemplatePath: string =
-			appAny.internalPlugins?.getPluginById("daily-notes")?.instance?.options
-				?.template ?? "";
+			appInternal.internalPlugins?.getPluginById("daily-notes")?.instance
+				?.options?.template ?? "";
 		const periodicTemplatePath: string =
-			appAny.plugins?.plugins?.["periodic-notes"]?.settings?.daily?.template ??
-			"";
+			appInternal.plugins?.plugins?.["periodic-notes"]?.settings?.daily
+				?.template ?? "";
 
 		const rawPath = coreTemplatePath || periodicTemplatePath;
 		if (!rawPath) return "";
@@ -678,27 +678,25 @@ export class DailyNoteService {
 	}
 
 	private getDailyNoteFormat(): string {
-		// biome-ignore lint/suspicious/noExplicitAny: Obsidian internal/community plugin API
-		const appAny = this.app as any;
+		const appInternal = this.app as unknown as ObsidianInternalApp;
 		const coreFormat: string =
-			appAny.internalPlugins?.getPluginById("daily-notes")?.instance?.options
-				?.format ?? "";
+			appInternal.internalPlugins?.getPluginById("daily-notes")?.instance
+				?.options?.format ?? "";
 		const periodicFormat: string =
-			appAny.plugins?.plugins?.["periodic-notes"]?.settings?.daily?.format ??
-			"";
+			appInternal.plugins?.plugins?.["periodic-notes"]?.settings?.daily
+				?.format ?? "";
 
 		return coreFormat || periodicFormat || "YYYY-MM-DD";
 	}
 
 	private getDailyNoteFolder(): string {
-		// biome-ignore lint/suspicious/noExplicitAny: Obsidian internal/community plugin API
-		const appAny = this.app as any;
+		const appInternal = this.app as unknown as ObsidianInternalApp;
 		const coreFolder: string =
-			appAny.internalPlugins?.getPluginById("daily-notes")?.instance?.options
-				?.folder ?? "";
+			appInternal.internalPlugins?.getPluginById("daily-notes")?.instance
+				?.options?.folder ?? "";
 		const periodicFolder: string =
-			appAny.plugins?.plugins?.["periodic-notes"]?.settings?.daily?.folder ??
-			"";
+			appInternal.plugins?.plugins?.["periodic-notes"]?.settings?.daily
+				?.folder ?? "";
 
 		return normalizePath(coreFolder || periodicFolder || "");
 	}
