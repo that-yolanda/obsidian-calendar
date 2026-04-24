@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.0.9] - 2026-04-24
+## [0.0.10] - 2026-04-24
 
 ### Added
 - i18n support for Chinese (zh-CN) and English (en)
