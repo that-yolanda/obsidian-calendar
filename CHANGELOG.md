@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.0.11] - 2026-04-24
+
+### Fixed
+- Removed unnecessary async callbacks flagged by Obsidian community plugin review.
+
 ## [0.0.10] - 2026-04-24
 
 ### Added

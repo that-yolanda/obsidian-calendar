@@ -269,7 +269,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 					fileInput.value = config.targetFile || "";
 					fileRow.appendChild(fileInput);
 
-					const updateTargetFile = async (value: string) => {
+					const updateTargetFile = (value: string) => {
 						const item = this.plugin.settings.taskConfigs[index];
 						if (!item) return;
 						this.manualHeadingDrafts.delete(index);
@@ -284,12 +284,12 @@ export class CalendarSettingTab extends PluginSettingTab {
 						markdownFilePaths,
 					);
 					suggest.onSelect((value) => {
-						void updateTargetFile(value);
+						updateTargetFile(value);
 					});
 
 					fileInput.addEventListener("input", () => {
 						if (!fileInput.value.trim()) {
-							void updateTargetFile("");
+							updateTargetFile("");
 						}
 					});
 
@@ -300,7 +300,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 							return;
 						}
 						if (value !== config.targetFile) {
-							void updateTargetFile(value);
+							updateTargetFile(value);
 						}
 					});
 
@@ -426,7 +426,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 					btn
 						.setIcon("trash")
 						.setTooltip(t("settings.delete"))
-						.onClick(async () => {
+						.onClick(() => {
 							this.manualHeadingDrafts.delete(index);
 							this.plugin.settings.taskConfigs.splice(index, 1);
 							this.display();
@@ -441,7 +441,7 @@ export class CalendarSettingTab extends PluginSettingTab {
 				btn
 					.setIcon("plus")
 					.setButtonText(t("settings.addTask"))
-					.onClick(async () => {
+					.onClick(() => {
 						this.manualHeadingDrafts.clear();
 						this.plugin.settings.taskConfigs.push(
 							this.createDefaultTaskConfig(),
