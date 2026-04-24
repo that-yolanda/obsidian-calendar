@@ -1,6 +1,6 @@
 {
 	"name": "icalendar",
-	"version": "0.0.10",
+	"version": "0.0.11",
 	"description": "iCalendar",
 	"main": "main.js",
 	"type": "module",
